@@ -32,6 +32,7 @@ def update_pressure_at_node(
     return ((1 - epsilon) * pressure_at_node) + (epsilon * neighbour_avg) + flow_at_node
 
 
+# added d_max to prevent critical paths from diverging to infinity (given update formula)
 def update_conductivity_row(
     row_index: int,
     conductivity_row: NDArray[float],
@@ -39,7 +40,8 @@ def update_conductivity_row(
     pressure_vector: NDArray[float],
     mu: float,
     r: float,
-    d_max: float = 1.0,
+    d_max: float = 1.75,
+    d_min: float = 1e-4
 ):
     adjusted_conductivity = (1 - mu) * conductivity_row
     flow_change = [
@@ -47,7 +49,20 @@ def update_conductivity_row(
         for (idx, val) in enumerate(conductivity_by_length_row)
     ]
 
-    return adjusted_conductivity + flow_change
+    updated_conductivity = adjusted_conductivity + flow_change
+
+    return np.where(updated_conductivity > d_min, updated_conductivity, 0)
+
+
+def make_flow_vector(number_of_nodes: int, start_nodes: list[int], end_nodes: list[int]) -> NDArray[float]:
+    positive_flow = len(start_nodes)
+    negative_flow = -len(end_nodes)
+
+    flow_vector = np.zeros(number_of_nodes, dtype=float)
+    flow_vector[start_nodes] = 1 / positive_flow
+    flow_vector[end_nodes] = 1 / negative_flow
+
+    return flow_vector
 
 
 edges_dict = {
@@ -86,17 +101,19 @@ edges_dict_3 = {
 }
 
 
-# edges = make_adjacency_matrix(edges_dict)
 edges = make_adjacency_matrix(edges_dict_2)
 adj_matrix = np.array(edges, dtype=int)
 print(adj_matrix)
 
-start_node = 0
-end_node = 3
+start_nodes = [0]
+end_nodes = [1, 14]
 
-r = 0.01
-mu = 0.025
-epsilon = 0.2
+# epsilon
+    # should be >> r, mu and epsilon should be < 0.5
+    # does not converge properly otherwise - all conductivity goes to zero
+r = 0.013
+mu = 0.022
+epsilon = 0.3
 
 number_of_nodes = adj_matrix.shape[0]
 initialiser_rows = number_of_nodes
@@ -107,10 +124,9 @@ inverse_length = np.where(adj_matrix == 0, 0, 1 / adj_matrix)
 initial_conductivity = adj_matrix * initialiser
 initial_pressure: NDArray[int] = np.zeros(number_of_nodes, dtype=int)
 
-flow_vector: NDArray[int] = np.zeros(number_of_nodes, dtype=int)
-indices_to_update = [start_node, end_node]
-values_to_update = [1, -1]
-flow_vector[indices_to_update] = values_to_update
+flow_vector = make_flow_vector(number_of_nodes, start_nodes, end_nodes)
+print("Flow vector")
+print(flow_vector)
 
 G = nx.Graph(adj_matrix)
 pos = nx.spring_layout(G, seed=27)
@@ -127,10 +143,14 @@ print(initial_conductivity)
 print("Initial conductivity by length")
 print(initial_conductivity * inverse_length)
 
-stable_point = False
-
-pressure_loop = 25
+# inner pressure loop allows pressure to build up before it is reflected in conductivity - mimics biological system
+pressure_loop = 35
 outer_loop_length = 350
+
+# TODO: Resolve problem in 16 node graph where it cannot connect paths between sources and sinks that are very long.
+#  Pressure decays quickly in the centre of these long paths (partly due to the cap applied to conductivity), but mimics
+#  what would happen naturally. Pressure is high at a source and low at a sink.
+    # It does go away if you add more sources and sinks to the graph, but that feels like a cheat code.
 
 plt.ion()
 
@@ -138,11 +158,11 @@ plt.ion()
 for n in range(outer_loop_length):
     edge_weights = [float(last_conductivity[u][v]) * 10 for u, v in G.edges()]
     nx.draw_networkx_nodes(G, pos, node_color='black', node_size=500)
-    nx.draw_networkx_nodes(G, pos, nodelist=[start_node], node_color='red', node_size=500)
-    nx.draw_networkx_nodes(G, pos, nodelist=[end_node], node_color='green', node_size=500)
+    nx.draw_networkx_nodes(G, pos, nodelist=start_nodes, node_color='red', node_size=500)
+    nx.draw_networkx_nodes(G, pos, nodelist=end_nodes, node_color='green', node_size=500)
     nx.draw_networkx_edges(G, pos, width=edge_weights, edge_color='gray', alpha=0.3)
 
-    plt.pause(0.01)
+    plt.pause(0.005)
 
     conductivity_by_length = last_conductivity * inverse_length
 
