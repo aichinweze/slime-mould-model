@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ebf983b-d8d3-4bf1-b288-501d436dc5cb" name="Changes" comment="Updating model to use graph visualisation">
+    <list default="true" id="8ebf983b-d8d3-4bf1-b288-501d436dc5cb" name="Changes" comment="Fixed matrix calculcations to find stable point of graph. Tested up to 13 nodes.">
+      <change afterPath="$PROJECT_DIR$/slime_mould_model_2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/slime_mould_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/slime_mould_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,15 +43,16 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.slime_mould_model.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.slime_mould_model.executor": "Run",
+    "Python.slime_mould_model_2.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -91,7 +92,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769519913139</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Fixed matrix calculcations to find stable point of graph. Tested up to 13 nodes.">
+      <option name="closed" value="true" />
+      <created>1769889524741</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1769889524741</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -109,6 +118,7 @@
     <MESSAGE value="Initial commit" />
     <MESSAGE value="Initial version of slime mould model to solve simple grid case." />
     <MESSAGE value="Updating model to use graph visualisation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updating model to use graph visualisation" />
+    <MESSAGE value="Fixed matrix calculcations to find stable point of graph. Tested up to 13 nodes." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed matrix calculcations to find stable point of graph. Tested up to 13 nodes." />
   </component>
 </project>
