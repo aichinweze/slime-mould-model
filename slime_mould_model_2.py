@@ -65,7 +65,7 @@ def make_flow_vector(number_of_nodes: int, start_nodes: list[int], end_nodes: li
     return flow_vector
 
 
-edges_dict = {
+edges_dict_1 = {
     0: [1],
     1: [0, 2, 3],
     2: [1],
@@ -100,13 +100,21 @@ edges_dict_3 = {
     15: [14]
 }
 
+edges_dict_4 = {
+    0: [1, 2, 3],
+    1: [0, 4],
+    2: [0, 4],
+    3: [0, 4],
+    4: [1, 2, 3]
+}
 
-edges = make_adjacency_matrix(edges_dict_2)
+
+edges = make_adjacency_matrix(edges_dict_4)
 adj_matrix = np.array(edges, dtype=int)
 print(adj_matrix)
 
 start_nodes = [0]
-end_nodes = [1, 14]
+end_nodes = [4]
 
 # epsilon
     # should be >> r, mu and epsilon should be < 0.5
