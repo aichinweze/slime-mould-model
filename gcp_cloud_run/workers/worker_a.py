@@ -5,7 +5,7 @@ from gcp_cloud_run.models.crypto_data import CryptoData
 from gcp_cloud_run.workers.worker_base import WorkerBase
 
 class WorkerA(WorkerBase):
-    def __init__(self, source_currency: str, target_currency: str, delay: float):
+    def __init__(self, source_currency: str, target_currency: str):
         super().__init__(
             source_currency=source_currency,
             target_currency=target_currency
@@ -16,7 +16,8 @@ class WorkerA(WorkerBase):
     def execute(self) -> CryptoData:
         request_url = self.build_crypto_price_url(self.currency_pair)
 
-        response = requests.get(request_url).json()
+        response = requests.get(request_url)
+        response_json = response.json()
 
         time.sleep(self.delay)
 
@@ -26,14 +27,7 @@ class WorkerA(WorkerBase):
         return CryptoData(
             source_currency=self.source_currency,
             target_currency=self.target_currency,
-            price=float(response['data']['amount'])
+            price=float(response_json['data']['amount'])
         )
-
-        # TODO: Write output to publishing topic
-            # source_currency
-            # target_currency
-            # amount
-
-
 
 

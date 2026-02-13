@@ -17,6 +17,7 @@ class WorkerC(WorkerBase):
         request_url = self.build_crypto_price_url(self.currency_pair)
 
         response = requests.get(request_url)
+        response_json = response.json()
 
         time.sleep(self.delay)
 
@@ -26,28 +27,7 @@ class WorkerC(WorkerBase):
         return CryptoData(
             source_currency=self.source_currency,
             target_currency=self.target_currency,
-            price=float(response['data']['amount'])
+            price=float(response_json['data']['amount'])
         )
 
 
-# Get source and target currency from P/S message
-# source_currency = "BTC"     # TODO: Update to use incoming message
-# target_currency = "USD"     # TODO: Update to use incoming message
-#
-# currency_pair = f'{source_currency}-{target_currency}'
-#
-# request_url = build_crypto_price_url(currency_pair)
-#
-# response = requests.get(request_url)
-#
-# delay = 15
-#
-# time.sleep(delay)
-#
-# print("Response status code: " + str(response.status_code))
-# print(response.json())
-
-# TODO: Write output to publishing topic
-    # source_currency
-    # target_currency
-    # amount
