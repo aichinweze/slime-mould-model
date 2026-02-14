@@ -1,19 +1,19 @@
 import time
 import requests
 
-from models.crypto_data import CryptoData
-from gcp_cloud_run.workers.worker_base import WorkerBase
+from ..models.models import CryptoResult
+from .worker_base import WorkerBase
 
 class WorkerA(WorkerBase):
-    def __init__(self, source_currency: str, target_currency: str):
+    def __init__(self, source_currency: str, target_currency: str, delay: int = 1):
         super().__init__(
             source_currency=source_currency,
             target_currency=target_currency
         )
-        self.delay = 1
+        self.delay = delay
         self.currency_pair = f'{source_currency}-{target_currency}'
 
-    def execute(self) -> CryptoData:
+    def execute(self) -> dict:
         request_url = self.build_crypto_price_url(self.currency_pair)
 
         response = requests.get(request_url)
@@ -26,10 +26,16 @@ class WorkerA(WorkerBase):
 
         # TODO: Add error handling
 
-        return CryptoData(
+        output = CryptoResult(
             source_currency=self.source_currency,
             target_currency=self.target_currency,
             price=float(response_json['data']['amount'])
         )
+
+        return {
+            "source_currency": output.source_currency,
+            "target_currency": output.target_currency,
+            "price": output.price
+        }
 
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from models.crypto_data import CryptoData
+from ..models.models import CryptoResult
 
 
 class WorkerBase(ABC):
@@ -9,7 +9,7 @@ class WorkerBase(ABC):
         self.target_currency = target_currency
 
     @abstractmethod
-    def execute(self) -> CryptoData:
+    def execute(self) -> dict:
         pass
 
     BASE_URL: str = "https://api.coinbase.com/v2/prices/"
