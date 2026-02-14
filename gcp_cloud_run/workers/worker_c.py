@@ -1,7 +1,7 @@
 import time
 import requests
 
-from gcp_cloud_run.models.crypto_data import CryptoData
+from models.crypto_data import CryptoData
 from gcp_cloud_run.workers.worker_base import WorkerBase
 
 class WorkerC(WorkerBase):
@@ -23,6 +23,8 @@ class WorkerC(WorkerBase):
 
         print("Response status code: " + str(response.status_code))
         print(response.json())
+
+        # TODO: Add error handling
 
         return CryptoData(
             source_currency=self.source_currency,

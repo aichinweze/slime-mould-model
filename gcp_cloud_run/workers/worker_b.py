@@ -1,7 +1,7 @@
 import requests
 import time
 
-from gcp_cloud_run.models.crypto_data import CryptoData
+from models.crypto_data import CryptoData
 from gcp_cloud_run.workers.worker_base import WorkerBase
 
 def aggregate_prices(prices: list[float]) -> float:
@@ -36,6 +36,8 @@ class WorkerB(WorkerBase):
         prices = [float(response['data']['amount']) for response in responses]
         print(prices)
         print(aggregate_prices(prices))
+
+        # TODO: Add error handling
 
         return CryptoData(
             source_currency=self.source_currency,

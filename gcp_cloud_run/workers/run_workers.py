@@ -1,13 +1,31 @@
+import functions_framework
+
 from gcp_cloud_run.workers.worker_a import WorkerA
 from gcp_cloud_run.workers.worker_b import WorkerB
 from gcp_cloud_run.workers.worker_c import WorkerC
 
-# Get source and target currency from P/S message
+import os
 
-# TODO: Write output to publishing topic
-    # source_currency
-    # target_currency
-    # amount
+
+# Indicate which worker type is supposed to be used in this container
+worker_type = os.environ.get("WORKER_TYPE", "")
+
+@functions_framework.http
+def process_routed_request(request):
+    """
+    HTTP Cloud Function:
+    This function is triggered by the Router and implements the specified worker type (from environment variable).
+    The request will come from the router and contain information about the cryptocurrency pair to convert.
+    """
+
+    # Get source and target currency from P/S message
+    return "A thing"
+
+    # TODO: Write output to publishing topic
+        # source_currency
+        # target_currency
+        # amount
+
 
 source_currency_a = "BTC"
 target_currency_a = "USD"

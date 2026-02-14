@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from gcp_cloud_run.models.crypto_data import CryptoData
+from models.crypto_data import CryptoData
 
 
 class WorkerBase(ABC):
