@@ -1,21 +1,20 @@
 import json
-
 import functions_framework
-
 import time
+import os
 
 from .workers.worker_a import WorkerA
 from .workers.worker_b import WorkerB
+from .workers.worker_base import convert_crypto_result_to_dict
 from .workers.worker_c import WorkerC
 
 from google.cloud import pubsub_v1
 
-import os
 
 # TODO: Remove test values
-PROJECT_ID = os.environ.get('PROJECT_ID', "testing-123")
-PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')#, "worker-success-topic")
-PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID', "worker-error-topic")
+PROJECT_ID = os.environ.get('PROJECT_ID')
+PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
+PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 
 publisher = pubsub_v1.PublisherClient()
 
@@ -24,7 +23,7 @@ error_topic_path = publisher.topic_path(PROJECT_ID, PUBLISHER_ERROR_TOPIC_ID)
 
 # Indicate which worker type is supposed to be used in this container
 # TODO: Throw an error if this is not specified
-worker_type = os.environ.get("WORKER_TYPE", "a")
+worker_type = os.environ.get("WORKER_TYPE")
 
 @functions_framework.http
 def process_routed_request(request):
@@ -55,23 +54,30 @@ def process_routed_request(request):
                 worker = WorkerC(source_currency, target_currency)
                 print("Using worker C")
                 worker_out = worker.execute()
+                # TODO: Add else condition to handle scenario where no worker type is specified
 
             end_time = time.perf_counter()
 
             execution_time = end_time - start_time
 
-            worker_out["execution_time"] = execution_time
+            if worker_out.success_response:
+                topic_path = success_topic_path
+                topic_id = PUBLISHER_SUCCESS_TOPIC_ID
+            else:
+                topic_path = error_topic_path
+                topic_id = PUBLISHER_ERROR_TOPIC_ID
 
-            # TODO: If success flag true - publish to success topic, otherwise publish to error topic
+            worker_message = convert_crypto_result_to_dict(worker_out)
 
-            json_payload = json.dumps(worker_out)
+            worker_message["execution_time"] = execution_time
+
+            json_payload = json.dumps(worker_message)
             data = json_payload.encode("utf-8")
 
-            publish_result = publisher.publish(success_topic_path, data=data)
+            publish_result = publisher.publish(topic_path, data=data)
 
             message_id = publish_result.result()
-            print(f'Message ID: {message_id} published to topic {PUBLISHER_SUCCESS_TOPIC_ID}')
-            print(worker_out)
+            print(f'Message ID: {message_id} published to topic {topic_id}')
 
             return message_id
         else:
@@ -80,30 +86,3 @@ def process_routed_request(request):
     # Get source and target currency from P/S message
     return "A thing"
 
-    # TODO: Write output to publishing topic
-        # source_currency
-        # target_currency
-        # amount
-
-
-# source_currency_a = "BTC"
-# target_currency_a = "USD"
-#
-# source_currency_b = "ETH"
-# target_currency_b = "USD"
-#
-# source_currency_c = "FET"
-# target_currency_c = "USD"
-#
-# worker_a = WorkerA(source_currency=source_currency_a, target_currency=target_currency_a)
-# worker_b = WorkerB(source_currency=source_currency_b, target_currency=target_currency_b, number_of_loops=5)
-# worker_c = WorkerC(source_currency=source_currency_c, target_currency=target_currency_c)
-#
-# print("Worker A")
-# worker_a_out = worker_a.execute()
-#
-# print("Worker B")
-# worker_b_out = worker_b.execute()
-#
-# print("Worker C")
-# worker_c_out = worker_c.execute()
