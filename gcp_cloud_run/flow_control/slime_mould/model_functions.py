@@ -73,19 +73,25 @@ def update_pressure(
 def update_conductivity_row(
     row_index: int,
     conductivity_row: NDArray[float],
-    conductivity_by_length_row: NDArray[float],
+    efficiency_row: NDArray[float],
     pressure_vector: NDArray[float],
     mu: float,
-    r: float,
+    alpha: float,
     d_max: float,
     d_min: float
 ) -> NDArray[float]:
     """Update conductivity for the edges connected to a given node on the graph."""
     adjusted_conductivity = (1 - mu) * conductivity_row
 
+
     flow_change = [
-        (abs(r * val * (pressure_vector[row_index] - pressure_vector[idx])) * (1 - (conductivity_row[idx]/d_max)))
-        for (idx, val) in enumerate(conductivity_by_length_row)
+        (
+            alpha *
+            efficiency_row[idx] *
+            abs(val * (pressure_vector[row_index] - pressure_vector[idx])) *
+            (1 - (conductivity_row[idx] / d_max))
+        )
+        for (idx, val) in enumerate(conductivity_row)
     ]
 
     updated_conductivity = adjusted_conductivity + flow_change
@@ -115,5 +121,6 @@ def update_conductivity(
                 r,
                 d_max,
                 d_min
-            ) for i in range(number_of_nodes)
+            )
+            for i in range(number_of_nodes)
         ])

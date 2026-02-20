@@ -59,8 +59,8 @@ class WorkerB(WorkerBase):
             crypto_results.append(crypto_result)
             time.sleep(self.delay)
 
-        print(crypto_results)
         final_result = aggregate_output(crypto_results)
+        print("Worker B: execute: completed job.")
         print(final_result)
 
         return final_result

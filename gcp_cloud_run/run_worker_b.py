@@ -1,15 +1,12 @@
 import json
-import functions_framework
-import time
 import os
+import time
 
-from .workers.worker_a import WorkerA
-from .workers.worker_b import WorkerB
-from .workers.worker_base import convert_crypto_result_to_dict
-from .workers.worker_c import WorkerC
-
+import functions_framework
 from google.cloud import pubsub_v1
 
+from .workers.worker_b import WorkerB
+from .workers.worker_base import convert_crypto_result_to_dict
 
 # TODO: Remove test values
 PROJECT_ID = os.environ.get('PROJECT_ID')
@@ -37,24 +34,14 @@ def process_routed_request(request):
     if content_type == "application/json":
         request_json = request.get_json(silent=True)
         if request_json and "source_currency" in request_json and "target_currency" in request_json:
-            start_time = time.perf_counter()
-
             source_currency = request_json["source_currency"]
             target_currency = request_json["target_currency"]
 
-            if worker_type == "a":
-                worker = WorkerA(source_currency, target_currency)
-                print("Using worker A")
-                worker_out = worker.execute()
-            elif worker_type == "b":
-                worker = WorkerB(source_currency, target_currency)
-                print("Using worker B")
-                worker_out = worker.execute()
-            else:
-                worker = WorkerC(source_currency, target_currency)
-                print("Using worker C")
-                worker_out = worker.execute()
-                # TODO: Add else condition to handle scenario where no worker type is specified
+            start_time = time.perf_counter()
+
+            worker = WorkerB(source_currency, target_currency)
+            print("Using worker B")
+            worker_out = worker.execute()
 
             end_time = time.perf_counter()
 

@@ -7,6 +7,8 @@ requires-python = ">=3.14"
 dependencies = [
     "functions-framework>=3.10.0",
     "google-cloud-pubsub>=2.35.0",
+    "matplotlib>=3.10.8",
+    "networkx>=3.6.1",
     "numpy>=2.4.2",
     "requests>=2.32.5",
 ]
