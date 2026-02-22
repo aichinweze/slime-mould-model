@@ -16,15 +16,17 @@ def build_flow_vector(number_of_nodes: int, source_nodes: list[int], sink_nodes:
 
     return flow_vector
 
-def build_adjacency_matrix(connection_dict: dict[int, list[int]]):
+def build_adjacency_matrix(connection_dict: dict[int, list[int]]) -> NDArray[float]:
     """Build an adjacency matrix from a dictionary which represents the edges in the matrix."""
-    adjacency_matrix = []
+    adjacency_list = []
     number_of_nodes = len(connection_dict)
 
     for idx in range(number_of_nodes):
         non_zero_row_indices = connection_dict[idx]
         row = [(1 if arr_index in non_zero_row_indices else 0) for arr_index in range(number_of_nodes)]
-        adjacency_matrix.append(row)
+        adjacency_list.append(row)
+        
+    adjacency_matrix = np.array(adjacency_list, dtype=float)
     return adjacency_matrix
 
 
@@ -82,7 +84,6 @@ def update_conductivity_row(
 ) -> NDArray[float]:
     """Update conductivity for the edges connected to a given node on the graph."""
     adjusted_conductivity = (1 - mu) * conductivity_row
-
 
     flow_change = [
         (

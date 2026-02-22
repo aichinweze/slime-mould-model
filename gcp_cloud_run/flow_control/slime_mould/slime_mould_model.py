@@ -1,18 +1,18 @@
-from model_functions import *
-from params import SlimeMouldParams
-from graph import SlimeMouldGraph
+from ..slime_mould.model_functions import *
+from ..slime_mould.params import SlimeMouldParams
+from ..slime_mould.graph import SlimeMouldGraph
 
 class SlimeMouldModel:
     def __init__(
             self,
             slime_mould_params: SlimeMouldParams,
-            graph: SlimeMouldGraph,
+            slime_mould_graph: SlimeMouldGraph,
             efficiency_matrix: NDArray[float]=None,
             conductivity_matrix: NDArray[float]=None,
             pressure_loop: int = 25
     ):
         self.slime_mould_params = slime_mould_params
-        self.graph = graph
+        self.graph = slime_mould_graph
         self.efficiency_matrix = efficiency_matrix
         self.conductivity_matrix = conductivity_matrix
         self.pressure_loop = pressure_loop
@@ -65,19 +65,20 @@ class SlimeMouldModel:
         return last_pressure, last_conductivity
 
 
-edges_dict_1 = {
-    0: [1, 2, 3],
-    1: [0, 4],
-    2: [0, 4],
-    3: [0, 4],
-    4: [1, 2, 3]
-}
-
-graph = SlimeMouldGraph(edges_dict=edges_dict_1, source_nodes=[0], sink_nodes=[4])
-model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
-model = SlimeMouldModel(slime_mould_params=model_params, graph=graph)
-
-pressure, conductivity = model.run_model()
-
-print(pressure)
-print(conductivity)
+# TODO: Move to unit test
+# edges_dict_1 = {
+#     0: [1, 2, 3],
+#     1: [0, 4],
+#     2: [0, 4],
+#     3: [0, 4],
+#     4: [1, 2, 3]
+# }
+#
+# graph = SlimeMouldGraph(edges_dict=edges_dict_1, source_nodes=[0], sink_nodes=[4])
+# model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
+# model = SlimeMouldModel(slime_mould_params=model_params, slime_mould_graph=graph)
+#
+# pressure, conductivity = model.run_model()
+#
+# print(pressure)
+# print(conductivity)
