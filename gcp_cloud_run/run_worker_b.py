@@ -32,10 +32,10 @@ def process_routed_request(request):
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
-        request_json = request.get_json(silent=True)
-        if request_json and "source_currency" in request_json and "target_currency" in request_json:
-            source_currency = request_json["source_currency"]
-            target_currency = request_json["target_currency"]
+        request_json = json.loads(request.get_json(silent=True))
+        if request_json and "data" in request_json:
+            source_currency = request_json["data"]["source_currency"]
+            target_currency = request_json["data"]["target_currency"]
 
             start_time = time.perf_counter()
 

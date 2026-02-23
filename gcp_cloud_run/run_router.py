@@ -5,24 +5,29 @@ import random
 import functions_framework
 import requests
 
-from google.cloud import firestore
+from google.cloud import firestore, pubsub_v1
 from datetime import datetime, timezone
 
-from .flow_control.route_handler import get_worker_route_weights, make_route_weights
+from .flow_control.flow_control_utils import *
+from .flow_control.route_handler import get_worker_route_weights, make_route_weights, RouteHandler
 from .flow_control.slime_mould.graph import SlimeMouldGraph
 from .flow_control.slime_mould.params import SlimeMouldParams
 from .flow_control.slime_mould.slime_mould_model import SlimeMouldModel
 
-# from gcp_cloud_run.db.firestore_utils import collection_exists
 from .db.firestore_utils import *
 from .models.models import Metrics, GraphRouteWeights
 
+# TODO: Remove test values
 TARGET_URL_A = os.getenv("TARGET_URL", "http://localhost:8081")
 TARGET_URL_B = os.getenv("TARGET_URL", "http://localhost:8082")
 TARGET_URL_C = os.getenv("TARGET_URL", "http://localhost:8083")
 
 NUMBER_OF_WORKERS = int(os.getenv("NUMBER_OF_WORKERS", 3))
 NUMBER_OF_NODES = int(os.getenv("NUMBER_OF_NODES", 5))
+
+PROJECT_ID = os.getenv("PROJECT_ID", "testing-123")
+SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID", "subscription-testing-123")
+MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 50))
 
 test_weights = [0.7, 0.23, 0.02]
 workers = [TARGET_URL_A, TARGET_URL_B, TARGET_URL_C]
@@ -36,10 +41,10 @@ sink_nodes = [4]
 def update_controller(request):
     print("Received request")
 
-    firestore_db = firestore.Client()
+    firestore_client = firestore.Client()
 
-    route_weight_ref = firestore_db.collection(u'route_weight')
-    metrics_ref = firestore_db.collection(u'metrics')
+    route_weight_ref = firestore_client.collection(u'route_weight')
+    metrics_ref = firestore_client.collection(u'metrics')
 
     # Initialise graph and model params
     graph = SlimeMouldGraph(edges_dict=edges_dict, source_nodes=source_nodes, sink_nodes=sink_nodes)
@@ -76,19 +81,20 @@ def update_controller(request):
 
         result = get_latest_route_weight_query.get()[0]
 
-        print("Result from Query...")
-        print(result.to_dict())
+        # print("Result from Query...")
+        # print(result.to_dict())
 
         graph_route_weights = GraphRouteWeights.from_dict(result.to_dict())
-        print("Graph route weights created from result dictionary...")
-        print(graph_route_weights.to_dict())
-        # route_weights = [RouteWeight.from_dict(doc.to_dict()) for doc in results]
+        # print("Graph route weights created from result dictionary...")
+        # print(graph_route_weights)
+        # print(graph_route_weights.to_dict())
+        # # route_weights = [RouteWeight.from_dict(doc.to_dict()) for doc in results]
 
         next_iteration = graph_route_weights.get_iteration() + 1
         route_weights = graph_route_weights.get_route_weights()
 
         source_cond_dict = get_source_entries_from_route_weight(route_weights)
-        print("Source conductivity dictionary --> {}".format(source_cond_dict))
+        # print("Source conductivity dictionary --> {}".format(source_cond_dict))
         conductivity_matrix = build_matrix_from_edge_weights(source_cond_dict)
 
         # Get efficiency matrix from above
@@ -105,8 +111,8 @@ def update_controller(request):
         print(updated_conductivity_matrix)
 
         conductivity_to_workers: list[float] = updated_conductivity_matrix[0].tolist()
-        worker_weights = get_worker_route_weights(conductivity_to_workers)
-        print("Workers route weights --> {}".format(worker_weights))
+        worker_weights: list[float] = get_worker_route_weights(conductivity_to_workers)
+        # print("Workers route weights --> {}".format(worker_weights))
 
         route_weights_to_commit = make_route_weights(conductivity_to_workers)
 
@@ -119,8 +125,9 @@ def update_controller(request):
         # Load initial conductivity to Firestore DB
 
         # Set worker weights to even probability
-        print("There is no route weight table in Firestore...")
+        # print("There is no route weight table in Firestore...")
         conductivity_to_workers = [0.0 if (i in source_nodes or i in sink_nodes) else 1.0 for i in range(NUMBER_OF_NODES)]
+
         worker_weights = get_worker_route_weights(conductivity_to_workers)
 
         print("Worker route weights --> {}".format(worker_weights))
@@ -155,7 +162,7 @@ def update_controller(request):
         next_iteration = 1
 
         conductivity_to_workers: list[float] = updated_conductivity_matrix[0].tolist()
-        worker_weights = get_worker_route_weights(conductivity_to_workers)
+        worker_weights: list[float] = get_worker_route_weights(conductivity_to_workers)
         print("Workers route weights --> {}".format(worker_weights))
 
         route_weights_to_commit = make_route_weights(conductivity_to_workers)
@@ -167,7 +174,6 @@ def update_controller(request):
         )
 
     # Write out updated route weight to Firestore database (with time information)
-
     try:
         route_weight_doc_ref = route_weight_ref.document()
         print("Committing graph route weights to Firestore...")
@@ -182,6 +188,9 @@ def update_controller(request):
    # Run routing function
         # Read N messages from Pub/Sub topic
         # Route messages to workers
+    route_handler = RouteHandler(workers, PROJECT_ID, SUBSCRIPTION_ID, MAX_MESSAGES, firestore_client)
+    route_handler.execute()
+    route_handler.close_subscriber()
 
     print("Completed processing...")
 

@@ -63,8 +63,9 @@ class GraphRouteWeights:
 
     @staticmethod
     def from_dict(source: dict):
+        route_weights = [RouteWeight.from_dict(route_weight) for route_weight in source["route_weights"]]
         return GraphRouteWeights(
-            source["route_weights"],
+            route_weights,
             source["iteration"],
             source["timestamp"]
         )
