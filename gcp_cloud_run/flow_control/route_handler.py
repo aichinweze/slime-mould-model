@@ -84,7 +84,6 @@ def get_worker_weights(graph_route_weights: GraphRouteWeights, edge_delimiter: s
     worker_weights = []
     for route_weight in route_weights:
         nodes = route_weight.edge_id.split(edge_delimiter)
-        source_node = int(nodes[0])
         destination_node = int(nodes[1])
         conductivity = route_weight.get_conductivity()
         worker_weights.append((destination_node, conductivity))

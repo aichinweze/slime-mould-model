@@ -12,6 +12,7 @@ def aggregate_output(results: list[CryptoResult]) -> CryptoResult:
         success_results = [item for item in results if item.success_response]
         success_prices = [result.amount for result in success_results]
         return CryptoResult(
+            edge_id=success_results[0].edge_id,
             source_currency=success_results[0].source_currency,
             target_currency=success_results[0].target_currency,
             currency_pair=success_results[0].currency_pair,
@@ -24,6 +25,7 @@ def aggregate_output(results: list[CryptoResult]) -> CryptoResult:
         delimiter = ". "
         error_string = delimiter.join(error_messages)
         return CryptoResult(
+            edge_id=results[0].edge_id,
             source_currency=results[0].source_currency,
             target_currency=results[0].target_currency,
             currency_pair=results[0].currency_pair,
@@ -36,12 +38,14 @@ def aggregate_output(results: list[CryptoResult]) -> CryptoResult:
 class WorkerB(WorkerBase):
     def __init__(
             self,
+            node_id: int,
             source_currency: str,
             target_currency: str,
             number_of_loops: int = 5,
             delay: int = 5
     ):
         super().__init__(
+            node_id=node_id,
             source_currency=source_currency,
             target_currency=target_currency
         )

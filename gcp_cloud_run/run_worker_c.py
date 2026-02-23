@@ -5,13 +5,13 @@ import time
 import functions_framework
 from google.cloud import pubsub_v1
 
-from .workers.worker_base import convert_crypto_result_to_dict
 from .workers.worker_c import WorkerC
 
 # TODO: Remove test values
 PROJECT_ID = os.environ.get('PROJECT_ID')
 PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
+NODE_ID = int(os.environ.get('NODE_ID', 3))
 
 publisher = pubsub_v1.PublisherClient()
 
@@ -35,7 +35,7 @@ def process_routed_request(request):
 
             start_time = time.perf_counter()
 
-            worker = WorkerC(source_currency, target_currency)
+            worker = WorkerC(NODE_ID, source_currency, target_currency)
             print("Using worker C")
             worker_out = worker.execute()
 
@@ -50,9 +50,10 @@ def process_routed_request(request):
                 topic_path = error_topic_path
                 topic_id = PUBLISHER_ERROR_TOPIC_ID
 
-            worker_message = convert_crypto_result_to_dict(worker_out)
+            worker_out.set_execution_time(execution_time)
+            worker_out.set_timestamp()
 
-            worker_message["execution_time"] = execution_time
+            worker_message = worker_out.to_dict()
 
             json_payload = json.dumps(worker_message)
             data = json_payload.encode("utf-8")

@@ -1,13 +1,68 @@
 from dataclasses import dataclass
+from datetime import datetime
 
-@dataclass
+
 class CryptoResult:
-    source_currency: str
-    target_currency: str
-    currency_pair: str
-    success_response: bool
-    amount: float | None
-    error: str | None
+    def __init__(self,
+                 edge_id: str,
+                 source_currency: str,
+                 target_currency: str,
+                 currency_pair: str,
+                 success_response: bool,
+                 timestamp: str | None = None,
+                 execution_time: float | None = None,
+                 amount: float | None = None,
+                 error: str | None = None
+    ):
+        self.edge_id = edge_id
+        self.source_currency = source_currency
+        self.target_currency = target_currency
+        self.currency_pair = currency_pair
+        self.success_response = success_response
+        self.timestamp = timestamp
+        self.execution_time = execution_time
+        self.amount = amount
+        self.error = error
+
+    def get_edge_id(self):
+        return self.edge_id
+
+    def get_execution_time(self):
+        return self.execution_time
+
+    def set_timestamp(self):
+        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def to_dict(self) -> dict:
+        return {
+            "edge_id": self.edge_id,
+            "source_currency": self.source_currency,
+            "target_currency": self.target_currency,
+            "currency_pair": self.currency_pair,
+            "success_response": self.success_response,
+            "timestamp": self.timestamp,
+            "execution_time": self.execution_time,
+            "amount": self.amount,
+            "error": self.error
+        }
+
+    @staticmethod
+    def from_dict(source: dict):
+        return CryptoResult(
+            edge_id=source["edge_id"],
+            source_currency=source["source_currency"],
+            target_currency=source["target_currency"],
+            currency_pair=source["currency_pair"],
+            success_response=source["success_response"],
+            timestamp=source["timestamp"],
+            execution_time=source["execution_time"],
+            amount=source["amount"],
+            error=source["error"]
+        )
+
+    def set_execution_time(self, execution_time: float):
+        self.execution_time = execution_time
+
 
 @dataclass
 class CryptoQueryParams:

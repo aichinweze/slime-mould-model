@@ -5,8 +5,9 @@ from ..models.models import CryptoResult
 from .worker_base import WorkerBase
 
 class WorkerC(WorkerBase):
-    def __init__(self, source_currency: str, target_currency: str, delay: int = 15):
+    def __init__(self, node_id: int, source_currency: str, target_currency: str, delay: int = 15):
         super().__init__(
+            node_id=node_id,
             source_currency=source_currency,
             target_currency=target_currency
         )
