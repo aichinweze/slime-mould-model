@@ -1,5 +1,6 @@
-from google.cloud.firestore_v1 import CollectionReference
 from google.cloud import firestore
+from google.cloud.firestore_v1 import CollectionReference
+from google.cloud.firestore_v1.base_document import BaseDocumentReference
 
 from ..models.models import GraphRouteWeights
 
@@ -9,6 +10,16 @@ def collection_exists(collection_ref: CollectionReference) -> bool:
     result = query.get()
 
     if len(result) > 0:
+        return True
+    else:
+        return False
+
+def document_exists(document_ref: BaseDocumentReference) -> bool:
+    doc = document_ref.get()
+    doc_exists = doc.exists
+    print(f"Checking if document exists in Metrics store: {doc_exists}: data: {doc.to_dict()}")
+
+    if doc_exists:
         return True
     else:
         return False

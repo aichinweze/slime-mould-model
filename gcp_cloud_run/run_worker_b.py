@@ -34,8 +34,8 @@ def process_routed_request(request):
     if content_type == "application/json":
         request_json = json.loads(request.get_json(silent=True))
         if request_json and "data" in request_json:
-            source_currency = request_json["data"]["source_currency"]
-            target_currency = request_json["data"]["target_currency"]
+            source_currency = json.loads(request_json["data"])["source_currency"]
+            target_currency = json.loads(request_json["data"])["target_currency"]
 
             start_time = time.perf_counter()
 

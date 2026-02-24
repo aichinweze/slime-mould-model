@@ -81,6 +81,15 @@ def build_matrix_from_edge_weights(
 
         return updated_matrix
 
+def get_edge_ids_from_dict(edges_dict: dict[int, list[int]], edge_delimiter: str = ">>", source_node: int = 0) -> list[str]:
+    source_edges = edges_dict.get(source_node, [])
+
+    edge_ids = []
+    for edge in source_edges:
+        edge_id = f'{source_node}{edge_delimiter}{edge}'
+        edge_ids.append(edge_id)
+
+    return edge_ids
 
 # TODO: Move to unit test
 # rw_1 = RouteWeight(edge_id="0>>1", conductivity=0.5, timestamp="fake-time", iteration=0)

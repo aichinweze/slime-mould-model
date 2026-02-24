@@ -112,6 +112,9 @@ class RouteHandler:
         graph_route_weights = get_latest_graph_route_weights(self.firestore_client)
         worker_weights = get_worker_weights(graph_route_weights)
 
+        print("worker_weights: {}".format(worker_weights))
+        print("worker routes: {}".format(self.worker_routes))
+
         selected_route: str = random.choices(self.worker_routes, weights=worker_weights, k=1)[0]
         return selected_route
 
@@ -141,7 +144,7 @@ class RouteHandler:
             data: dict = json.loads(received_message.message.data.decode("utf-8"))
             messages.append({"data": data }) # TODO: Do I need any attributes?
             ack_ids.append(received_message.ack_id)
-            print(f"Received message: {data}")
+            print(f"Received message: {data} of type: {type(data)}")
 
         return messages, ack_ids
 
@@ -150,6 +153,7 @@ class RouteHandler:
 
     def execute(self):
         # Read N messages from Pub/Sub topic
+        print("Executing route handler")
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
 
         # Read from topic and acknowledge messages
@@ -158,7 +162,7 @@ class RouteHandler:
         responses = []
         for msg in messages_to_process:
             # Call a Cloud Run function to process the message
-            # TODO: Send requests asynchronously?
+            # TODO: Send requests asynchronously
             responses.append(requests.post(
                 url=self.select_worker_route(),
                 json=json.dumps(msg),

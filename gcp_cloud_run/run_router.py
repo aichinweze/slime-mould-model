@@ -36,39 +36,72 @@ edges_dict = { 0: [1, 2, 3], 1: [0, 4], 2: [0, 4], 3: [0, 4], 4: [1, 2, 3] }
 source_nodes = [0]
 sink_nodes = [4]
 
-
+# TODO: TIDY THIS FILE
 @functions_framework.http
 def update_controller(request):
-    print("Received request")
-
     firestore_client = firestore.Client()
 
     route_weight_ref = firestore_client.collection(u'route_weight')
-    metrics_ref = firestore_client.collection(u'metrics')
+    metrics_ref = firestore_client.collection(u'metrics').document("edge_metrics")
+
+    docs_metrics = list(metrics_ref.collections())
+
+    metrics_collections = []
+    metrics_flag = False
+
+    if docs_metrics:
+        metrics_collections = docs_metrics
+        metrics_flag = True
+        print("Metrics collection --> {}".format(metrics_collections))
+    else:
+        print("Metrics collection not found")
 
     # Initialise graph and model params
     graph = SlimeMouldGraph(edges_dict=edges_dict, source_nodes=source_nodes, sink_nodes=sink_nodes)
     model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
 
-    worker_weights = []
-
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # TODO: Change latency to track time between request being sent and request being processed!!!!!
+    # TODO: Deduplication strategy
+
     # Get metrics from metrics table in Firestore database
-    # if collection_exists(metrics_ref):
-    #     # Build efficiency matrix to use in updating conductivity matrix
-    #     get_latest_metrics_query = metrics_ref.order_by(
-    #         # TODO: UPDATE QUERY
-    #     ).limit(NUMBER_OF_WORKERS)
-    #
-    #     results = get_latest_metrics_query.get()
-    #     metrics = [Metrics.from_dict(doc.to_dict()) for doc in results]
-    #
-    #     source_metrics_dict = get_source_entries_from_metrics(metrics)
-    #     efficiency_matrix = build_matrix_from_edge_weights(source_metrics_dict)
-    # else:
-    #     # Proceed with an indicator that efficiency matrix is not available yet
-    #     efficiency_matrix = None
+    if metrics_flag:
+        # Build efficiency matrix to use in updating conductivity matrix
+        edge_ids = get_edge_ids_from_dict(edges_dict)
+        edge_latencies: list[Metrics] = []
+
+        for edge_id in edge_ids:
+            edge_ref = metrics_ref.collection(edge_id)
+
+            if collection_exists(edge_ref):
+                get_edge_latency_query = edge_ref.order_by(
+                    field_path="timestamp",
+                    direction=firestore.Query.DESCENDING
+                ).limit(1)
+
+                result = get_edge_latency_query.get()[0]
+                edge_latencies.append(Metrics.from_dict(result.to_dict()))
+            else:
+                edge_latencies.append(Metrics(edge_id, 2.5, 1, ""))
+
+        # for edge_id in edge_ids:
+        #     edge_ref = metrics_ref.collection(edge_id)
+        #     get_edge_latency_query = edge_ref.order_by(
+        #         field_path="timestamp",
+        #         direction=firestore.Query.DESCENDING
+        #     ).limit(1)
+        #
+        #     result = get_edge_latency_query.get()[0]
+        #     edge_latencies.append(Metrics.from_dict(result.to_dict()))
+
+        source_metrics_dict = get_source_entries_from_metrics(edge_latencies)
+        efficiency_matrix = build_matrix_from_edge_weights(source_metrics_dict)
+        print("Efficiency matrix built...")
+        print(efficiency_matrix)
+    else:
+        print("Metrics store contains no information, so no efficiency matrix could be created")
+        efficiency_matrix = None
 
     # Get route weight from route weight table in Firestore database
     if collection_exists(route_weight_ref):
@@ -101,7 +134,7 @@ def update_controller(request):
         model = SlimeMouldModel(
             slime_mould_params=model_params,
             slime_mould_graph=graph,
-            # efficiency_matrix=efficiency_matrix,
+            efficiency_matrix=efficiency_matrix,
             conductivity_matrix=conductivity_matrix
         )
 
@@ -146,7 +179,6 @@ def update_controller(request):
             route_weight_doc_ref = route_weight_ref.document()
             print("Committing graph route weights to Firestore...")
             print(graph_route_weights_to_commit.to_dict())
-
             route_weight_doc_ref.set(graph_route_weights_to_commit.to_dict())
         except Exception as e:
             return f'Unable to complete write to Firestore: {e}', 500
@@ -157,7 +189,6 @@ def update_controller(request):
         )
 
         pressure, updated_conductivity_matrix = model.run_model()
-        print("Worker route weights --> {}".format(worker_weights))
 
         next_iteration = 1
 
