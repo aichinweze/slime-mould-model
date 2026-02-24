@@ -127,15 +127,17 @@ class GraphRouteWeights:
 
 
 class Metrics:
-    def __init__(self, edge_id: str, avg_latency: float, timestamp: str):
+    def __init__(self, edge_id: str, avg_latency: float, document_count: int, timestamp: str):
         self.edge_id = edge_id
         self.avg_latency = avg_latency
+        self.document_count = document_count
         self.timestamp = timestamp
 
     def to_dict(self) -> dict:
         return {
             "edge_id": self.edge_id,
             "avg_latency": self.avg_latency,
+            "document_count": self.document_count,
             "timestamp": self.timestamp
         }
 
@@ -144,6 +146,7 @@ class Metrics:
         return Metrics(
             source["edge_id"],
             source["avg_latency"],
+            source["document_count"],
             source["timestamp"]
         )
 
