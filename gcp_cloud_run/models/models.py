@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+@dataclass
+class SlimeMouldParams:
+    alpha: float
+    mu: float
+    epsilon: float
+    d_max: float
+    d_min: float
 
 class CryptoResult:
     def __init__(self,

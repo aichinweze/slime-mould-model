@@ -22,7 +22,6 @@ class WorkerA(WorkerBase):
 
         time.sleep(self.delay)
 
-        print("Response status code: " + str(response.status_code))
-        print(response.json())
+        print("Worker A: execute: completed job --> {}".format(crypto_result.to_dict()))
 
         return crypto_result

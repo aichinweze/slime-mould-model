@@ -64,8 +64,7 @@ class WorkerB(WorkerBase):
             time.sleep(self.delay)
 
         final_result = aggregate_output(crypto_results)
-        print("Worker B: execute: completed job.")
-        print(final_result)
+        print("Worker B: execute: completed job --> {}".format(final_result.to_dict()))
 
         return final_result
 

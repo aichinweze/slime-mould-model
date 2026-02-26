@@ -7,7 +7,7 @@ import functions_framework
 from cloudevents.http import CloudEvent
 from google.cloud import firestore
 
-from .db.firestore_utils import collection_exists
+from .db.firestore_utils import collection_exists, get_historical_metrics
 from .metrics_processor.metrics_utils import aggregate_metrics
 from .models.models import CryptoResult, Metrics
 
@@ -22,35 +22,20 @@ def update_metrics(cloud_event: CloudEvent):
         firestore_client = firestore.Client()
 
         crypto_result = CryptoResult.from_dict(parsed_data)
-
         edge_id = crypto_result.get_edge_id()
         execution_time = crypto_result.get_execution_time()
 
         metrics_ref = firestore_client.collection(u'metrics')
-
         edge_ref = metrics_ref.document("edge_metrics").collection(edge_id)
-
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_metric = Metrics(edge_id=edge_id, avg_latency=execution_time, document_count=1, timestamp=timestamp)
-
         new_metric_ref = edge_ref.document()
 
         if not collection_exists(edge_ref):
             new_metric_ref.set(new_metric.to_dict())
         else:
-            historical_docs_query = edge_ref.order_by(
-                field_path="timestamp",
-                direction=firestore.Query.DESCENDING
-            ).limit(WINDOW_SIZE - 1)
-
-            historical_docs = historical_docs_query.get()
-
-            historical_metrics = []
-            for doc in historical_docs:
-                historical_metrics.append(Metrics.from_dict(doc.to_dict()))
-
+            historical_metrics = get_historical_metrics(edge_ref, WINDOW_SIZE)
             aggregated_metric_to_commit = aggregate_metrics(historical_metrics, new_metric)
-
             new_metric_ref.set(aggregated_metric_to_commit.to_dict())
 
         return f"Committed new metrics to edge {edge_id}"

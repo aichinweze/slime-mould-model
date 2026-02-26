@@ -1,5 +1,5 @@
 from ..slime_mould.model_functions import *
-from ..slime_mould.params import SlimeMouldParams
+from ...models.models import SlimeMouldParams
 from ..slime_mould.graph import SlimeMouldGraph
 
 class SlimeMouldModel:

@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from gcp_cloud_run.flow_control.flow_control_utils import build_matrix_from_edge_weights
 from gcp_cloud_run.flow_control.slime_mould.graph import SlimeMouldGraph
-from gcp_cloud_run.flow_control.slime_mould.params import SlimeMouldParams
+from gcp_cloud_run.models.models import SlimeMouldParams
 from gcp_cloud_run.flow_control.slime_mould.slime_mould_model import SlimeMouldModel
 
 

@@ -27,8 +27,9 @@ def process_routed_request(request):
     """
     HTTP Cloud Function:
     This function is triggered by the Router and implements the specified worker type (from environment variable).
-    The request will come from the flow_control and contain information about the cryptocurrency pair to convert.
+    The request will come from the route_handler and contain information about the cryptocurrency pair to convert.
     """
+    print("Worker B processing routed request...")
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
@@ -40,19 +41,14 @@ def process_routed_request(request):
             start_time = time.perf_counter()
 
             worker = WorkerB(NODE_ID, source_currency, target_currency)
-            print("Using worker B")
             worker_out = worker.execute()
 
             end_time = time.perf_counter()
 
             execution_time = end_time - start_time
 
-            if worker_out.success_response:
-                topic_path = success_topic_path
-                topic_id = PUBLISHER_SUCCESS_TOPIC_ID
-            else:
-                topic_path = error_topic_path
-                topic_id = PUBLISHER_ERROR_TOPIC_ID
+            topic_path = success_topic_path if worker_out.success_response else error_topic_path
+            topic_id = PUBLISHER_SUCCESS_TOPIC_ID if worker_out.success_response else PUBLISHER_ERROR_TOPIC_ID
 
             worker_out.set_execution_time(execution_time)
             worker_out.set_timestamp()

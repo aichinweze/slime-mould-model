@@ -23,7 +23,6 @@ def get_source_entries_from_metrics(source_metrics: list[Metrics], gamma: float 
     for metric in source_metrics:
         source_entries[metric.edge_id] = min_latency / (metric.avg_latency + gamma)
 
-    print("Flow Control Utils: get_source_entries_from_metrics: {}".format(source_entries))
     return source_entries
 
 def get_worker_node_entries(
@@ -82,7 +81,11 @@ def build_matrix_from_edge_weights(
 
         return updated_matrix
 
-def get_edge_ids_from_dict(edges_dict: dict[int, list[int]], edge_delimiter: str = ">>", source_node: int = 0) -> list[str]:
+def get_edge_ids_from_dict(
+        edges_dict: dict[int, list[int]],
+        edge_delimiter: str = ">>",
+        source_node: int = 0
+) -> list[str]:
     source_edges = edges_dict.get(source_node, [])
 
     edge_ids = []

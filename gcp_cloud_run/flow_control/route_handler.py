@@ -1,61 +1,20 @@
 import asyncio
-import base64
 import json
 import random
-from collections import Counter
 
 import aiohttp
-import requests
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
-from numpy.typing import NDArray
 
 from ..db.firestore_utils import get_latest_graph_route_weights
 from ..models.models import RouteWeight, GraphRouteWeights
 
 
-# encoded = "eyJzb3VyY2VfY3VycmVuY3kiOiAiQlRDIiwgInRhcmdldF9jdXJyZW5jeSI6ICJJQ1AiLCAiY3VycmVuY3lfcGFpciI6ICJCVEMtSUNQIiwgInN1Y2Nlc3NfcmVzcG9uc2UiOiB0cnVlLCAicHJpY2UiOiAzMDcwMy4xMDEwMTMyMDIzMzMsICJlcnJvciI6IG51bGwsICJleGVjdXRpb25fdGltZSI6IDE2LjU0OTgyMzg5OTk4NjIyMn0="
-#
-# decoded = base64.b64decode(encoded)
-#
-# print(decoded.decode("utf-8"))
-#
-# encoded = "eyJzb3VyY2VfY3VycmVuY3kiOiAiQlRDQ0QiLCAidGFyZ2V0X2N1cnJlbmN5IjogIklDUCIsICJjdXJyZW5jeV9wYWlyIjogIkJUQ0NELUlDUCIsICJzdWNjZXNzX3Jlc3BvbnNlIjogZmFsc2UsICJwcmljZSI6IG51bGwsICJlcnJvciI6ICJmYWlsZWQgdG8gZ2V0IHJhdGUgZm9yIChCVENDRCwgVVNEKTogcnBjIGVycm9yOiBjb2RlID0gTm90Rm91bmQgZGVzYyA9IG5vdCBmb3VuZCIsICJleGVjdXRpb25fdGltZSI6IDE2LjUwMjkyMTYwMDEyNzU5M30="
-#
-# decoded = base64.b64decode(encoded)
-#
-# print(decoded.decode("utf-8"))
-#
-# to_encode = '{"source_currency": "RNDR", "target_currency": "USD" }'
-# encoded = base64.b64encode(json.dumps(to_encode).encode("utf-8"))
-# print("Encoded Value")
-# print(encoded)
-#
-#
-# items = ["a", "b", "c"]
-# weights = [0.75, 0.18, 0.07]
-#
-# selected_list = []
-# for _ in range(100):
-#     selected_item = random.choices(items, weights=weights, k=1)
-#     selected_list.append(selected_item[0])
-#
-# item_counts = Counter(selected_list)
-# print(item_counts)
-# print(type(selected_list[0]))
-#
-# print(len({1: "a", 2: "b", 3: "c"}))
-
 # TODO: Simplify and sort out functions here
-def get_worker_route_weights(
-        worker_conductivities: list[float],
-        source_node: int = 0,
-        sink_node: int = 4
-) -> list[float]:
-
+def get_worker_route_weights(conductivity_list: list[float], source_node: int = 0, sink_node: int = 4) -> list[float]:
     worker_weights = []
 
-    for idx, value in enumerate(worker_conductivities):
+    for idx, value in enumerate(conductivity_list):
         if idx != sink_node and idx != source_node:
             worker_weights.append((idx, value))
 
@@ -65,14 +24,14 @@ def get_worker_route_weights(
 
 
 def make_route_weights(
-        worker_conductivities: list[float],
+        conductivity_list: list[float],
         edge_delimiter: str = ">>",
         source_node: int = 0,
         sink_node: int = 4
 ) -> list[RouteWeight]:
     route_weights: list[RouteWeight] = []
 
-    for index, value in enumerate(worker_conductivities):
+    for index, value in enumerate(conductivity_list):
         if index != sink_node and index != source_node:
             edge_id = f'{source_node}{edge_delimiter}{index}'
             route_weight = RouteWeight(edge_id=edge_id, conductivity=value)
@@ -121,6 +80,7 @@ class RouteHandler:
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
 
         messages = []
+        ack_ids = []
 
         try:
             # The subscriber pulls a specific number of messages.
@@ -128,22 +88,18 @@ class RouteHandler:
                 request={ "subscription": subscription_path, "max_messages": self.max_messages },
                 # Use a retry policy to handle transient errors and timeouts
                 retry=retry.Retry(deadline=300),
-                timeout=30.0
+                timeout=10.0
             )
+
+            if not response.received_messages:
+                print("No messages received in this pull request.")
+            else:
+                for received_message in response.received_messages:
+                    data: dict = json.loads(received_message.message.data.decode("utf-8"))
+                    messages.append({"data": data})
+                    ack_ids.append(received_message.ack_id)
         except Exception as e:
             print(f"An error occurred during Pub/Sub pull: {e}")
-            return []
-
-        if not response.received_messages:
-            print("No messages received in this pull request.")
-            return []
-
-        ack_ids = []
-        for received_message in response.received_messages:
-            data: dict = json.loads(received_message.message.data.decode("utf-8"))
-            messages.append({"data": data }) # TODO: Do I need any attributes?
-            ack_ids.append(received_message.ack_id)
-            print(f"Received message: {data} of type: {type(data)}")
 
         return messages, ack_ids
 
@@ -157,7 +113,6 @@ class RouteHandler:
             json=json.dumps(data),
             headers={'Content-Type': 'application/json'}
         ) as response:
-            print("Response: {}".format(response.status))
             return await response.json(content_type=None)
 
     async def execute(self):
@@ -168,29 +123,16 @@ class RouteHandler:
         # Read from topic and acknowledge messages
         messages_to_process, ack_ids = self.get_messages_from_topic()
 
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.send_requests(session, msg) for msg in messages_to_process]
-            results = await asyncio.gather(*tasks)
-            print("Route handler execution results...")
-            print(results)
+        if len(messages_to_process) > 0:
+            async with aiohttp.ClientSession() as session:
+                tasks = [self.send_requests(session, msg) for msg in messages_to_process]
+                results = await asyncio.gather(*tasks)
+                print("Route handler execution results...")
+                print(results)
 
-        # responses = []
-        # for msg in messages_to_process:
-        #     # TODO: Send requests asynchronously
-        #     responses.append(requests.post(
-        #         url=self.select_worker_route(),
-        #         json=json.dumps(msg),
-        #         headers={'Content-Type': 'application/json'}
-        #     ).status_code)
-
-        # item_counts = Counter(responses)
-        # print("Responses: " + str(item_counts))
-
-        # Acknowledges the received messages so they will not be sent again.
-        if ack_ids:
-            self.subscriber.acknowledge(
-                request={"subscription": subscription_path, "ack_ids": ack_ids}
-            )
-            print(f"Received and acknowledged {len(ack_ids)} messages.")
-
-
+            # Acknowledges the received messages so they will not be sent again.
+            if ack_ids:
+                self.subscriber.acknowledge(
+                    request={"subscription": subscription_path, "ack_ids": ack_ids}
+                )
+                print(f"Received and acknowledged {len(ack_ids)} messages.")
