@@ -16,15 +16,17 @@ def build_flow_vector(number_of_nodes: int, source_nodes: list[int], sink_nodes:
 
     return flow_vector
 
-def build_adjacency_matrix(connection_dict: dict[int, list[int]]):
+def build_adjacency_matrix(connection_dict: dict[int, list[int]]) -> NDArray[float]:
     """Build an adjacency matrix from a dictionary which represents the edges in the matrix."""
-    adjacency_matrix = []
+    adjacency_list = []
     number_of_nodes = len(connection_dict)
 
     for idx in range(number_of_nodes):
         non_zero_row_indices = connection_dict[idx]
         row = [(1 if arr_index in non_zero_row_indices else 0) for arr_index in range(number_of_nodes)]
-        adjacency_matrix.append(row)
+        adjacency_list.append(row)
+        
+    adjacency_matrix = np.array(adjacency_list, dtype=float)
     return adjacency_matrix
 
 
@@ -73,10 +75,10 @@ def update_pressure(
 def update_conductivity_row(
     row_index: int,
     conductivity_row: NDArray[float],
-    conductivity_by_length_row: NDArray[float],
+    efficiency_row: NDArray[float],
     pressure_vector: NDArray[float],
     mu: float,
-    r: float,
+    alpha: float,
     d_max: float,
     d_min: float
 ) -> NDArray[float]:
@@ -84,8 +86,13 @@ def update_conductivity_row(
     adjusted_conductivity = (1 - mu) * conductivity_row
 
     flow_change = [
-        (abs(r * val * (pressure_vector[row_index] - pressure_vector[idx])) * (1 - (conductivity_row[idx]/d_max)))
-        for (idx, val) in enumerate(conductivity_by_length_row)
+        (
+            alpha *
+            efficiency_row[idx] *
+            abs(val * (pressure_vector[row_index] - pressure_vector[idx])) *
+            (1 - (conductivity_row[idx] / d_max))
+        )
+        for (idx, val) in enumerate(conductivity_row)
     ]
 
     updated_conductivity = adjusted_conductivity + flow_change
@@ -115,5 +122,6 @@ def update_conductivity(
                 r,
                 d_max,
                 d_min
-            ) for i in range(number_of_nodes)
+            )
+            for i in range(number_of_nodes)
         ])

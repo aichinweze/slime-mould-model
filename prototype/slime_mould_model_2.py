@@ -5,6 +5,12 @@ from numpy.ma.core import outer
 
 from numpy.typing import NDArray
 
+from gcp_cloud_run.flow_control.flow_control_utils import build_matrix_from_edge_weights
+from gcp_cloud_run.flow_control.slime_mould.graph import SlimeMouldGraph
+from gcp_cloud_run.models.models import SlimeMouldParams
+from gcp_cloud_run.flow_control.slime_mould.slime_mould_model import SlimeMouldModel
+
+
 def make_adjacency_matrix(connection_dict: dict[int, list[int]]):
     adjacency_matrix = []
     number_of_nodes = len(connection_dict)
@@ -109,9 +115,9 @@ edges_dict_4 = {
 }
 
 
-edges = make_adjacency_matrix(edges_dict_4)
-adj_matrix = np.array(edges, dtype=int)
-print(adj_matrix)
+# edges = make_adjacency_matrix(edges_dict_4)
+# adj_matrix = np.array(edges, dtype=int)
+# print(adj_matrix)
 
 start_nodes = [0]
 end_nodes = [4]
@@ -123,69 +129,147 @@ r = 0.013
 mu = 0.022
 epsilon = 0.3
 
-number_of_nodes = adj_matrix.shape[0]
-initialiser_rows = number_of_nodes
-initialiser_cols = number_of_nodes
-initialiser = np.array([[1 for _ in range(initialiser_cols)] for _ in range(initialiser_rows)])
-inverse_length = np.where(adj_matrix == 0, 0, 1 / adj_matrix)
-
-initial_conductivity = adj_matrix * initialiser
-initial_pressure: NDArray[int] = np.zeros(number_of_nodes, dtype=int)
-
-flow_vector = make_flow_vector(number_of_nodes, start_nodes, end_nodes)
-print("Flow vector")
-print(flow_vector)
-
-G = nx.Graph(adj_matrix)
-pos = nx.spring_layout(G, seed=27)
-
-last_conductivity = initial_conductivity
-last_pressure = initial_pressure
-
-print("Flow vector")
-print(flow_vector)
-print("Initial pressure")
-print(initial_pressure)
-print("Initial conductivity")
-print(initial_conductivity)
-print("Initial conductivity by length")
-print(initial_conductivity * inverse_length)
-
-# inner pressure loop allows pressure to build up before it is reflected in conductivity - mimics biological system
-pressure_loop = 35
-outer_loop_length = 350
+# number_of_nodes = adj_matrix.shape[0]
+# initialiser_rows = number_of_nodes
+# initialiser_cols = number_of_nodes
+# initialiser = np.array([[1 for _ in range(initialiser_cols)] for _ in range(initialiser_rows)])
+# inverse_length = np.where(adj_matrix == 0, 0, 1 / adj_matrix)
+#
+# initial_conductivity = adj_matrix * initialiser
+# initial_pressure: NDArray[int] = np.zeros(number_of_nodes, dtype=int)
+#
+# flow_vector = make_flow_vector(number_of_nodes, start_nodes, end_nodes)
+# print("Flow vector")
+# print(flow_vector)
+#
+# G = nx.Graph(adj_matrix)
+# pos = nx.spring_layout(G, seed=27)
+#
+# last_conductivity = initial_conductivity
+# last_pressure = initial_pressure
+#
+# print("Flow vector")
+# print(flow_vector)
+# print("Initial pressure")
+# print(initial_pressure)
+# print("Initial conductivity")
+# print(initial_conductivity)
+# print("Initial conductivity by length")
+# print(initial_conductivity * inverse_length)
+#
+# # inner pressure loop allows pressure to build up before it is reflected in conductivity - mimics biological system
+# pressure_loop = 35
+# outer_loop_length = 350
 
 # TODO: Resolve problem in 16 node graph where it cannot connect paths between sources and sinks that are very long.
 #  Pressure decays quickly in the centre of these long paths (partly due to the cap applied to conductivity), but mimics
 #  what would happen naturally. Pressure is high at a source and low at a sink.
     # It does go away if you add more sources and sinks to the graph, but that feels like a cheat code.
 
+# plt.ion()
+#
+# # while not stable_point:
+# for n in range(outer_loop_length):
+#     edge_weights = [float(last_conductivity[u][v]) * 10 for u, v in G.edges()]
+#     nx.draw_networkx_nodes(G, pos, node_color='black', node_size=500)
+#     nx.draw_networkx_nodes(G, pos, nodelist=start_nodes, node_color='red', node_size=500)
+#     nx.draw_networkx_nodes(G, pos, nodelist=end_nodes, node_color='green', node_size=500)
+#     nx.draw_networkx_edges(G, pos, width=edge_weights, edge_color='gray', alpha=0.3)
+#
+#     plt.pause(0.005)
+#
+#     conductivity_by_length = last_conductivity * inverse_length
+#
+#     for nn in range(pressure_loop):
+#         next_pressure = np.array([update_pressure_at_node(i, last_pressure, last_conductivity[i], flow_vector[i], epsilon) for i in range(last_pressure.size)])
+#         last_pressure = next_pressure
+#         # print("Next pressure")
+#         # print(str(next_pressure))
+#
+#     updated_conductivity = [update_conductivity_row(i, last_conductivity[i], conductivity_by_length[i], last_pressure, mu, r) for i in range(number_of_nodes)]
+#
+#     # print("Next conductivity")
+#     # print(str(updated_conductivity))
+#
+#     last_conductivity = updated_conductivity
+#
+#     if n < outer_loop_length - 1:
+#         plt.cla()
+#     else:
+#         print("Loop complete")
+#
+# plt.ioff()
+# plt.show()
+# plt.close()
+
+edges_dict = { 0: [1, 2, 3], 1: [0, 4], 2: [0, 4], 3: [0, 4], 4: [1, 2, 3] }
+source_nodes = [0]
+sink_nodes = [4]
+
+# Initialise graph and model params
+graph = SlimeMouldGraph(edges_dict=edges_dict, source_nodes=source_nodes, sink_nodes=sink_nodes)
+model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
+
+# Natural state
+source_metrics_dict_1 = { "0>>1": 2.0 / (2.0 + 1e-2), "0>>2": 2.0 / (30 + 1e-2), "0>>3": 2.0/ (15.5 + 1e-2) }
+efficiency_matrix_1 = build_matrix_from_edge_weights(source_metrics_dict_1)
+
+# Close amounts of efficiency
+source_metrics_dict_2 = { "0>>1": 10.0 / (10.0 + 1e-2), "0>>2": 10.0 / (26 + 1e-2), "0>>3": 10.0 / (12.5 + 1e-2) }
+efficiency_matrix_2 = build_matrix_from_edge_weights(source_metrics_dict_2)
+
+# C becomes dominant
+source_metrics_dict_3 = { "0>>1": 12.0 / (17.0 + 1e-2), "0>>2": 12.0 / (25 + 1e-2), "0>>3": 12.0 / (12 + 1e-2) }
+efficiency_matrix_3 = build_matrix_from_edge_weights(source_metrics_dict_3)
+
+G = nx.Graph(graph.get_adjacency_matrix())
+pos = nx.spring_layout(G, seed=27)
+
+model = SlimeMouldModel(slime_mould_params=model_params, slime_mould_graph=graph)
+
+pressure, last_conductivity_matrix = model.run_model()
+
+# for _ in range(5):
+#     inclusive_model = SlimeMouldModel(model_params, graph, last_conductivity_matrix, efficiency_matrix)
+#
+#     pressure, updated_conductivity_matrix = inclusive_model.run_model()
+#     print("Pressure matrix")
+#     print(pressure)
+#
+#     print("Last conductivity matrix")
+#     print(last_conductivity_matrix)
+#
+#     last_conductivity_matrix = updated_conductivity_matrix
+
 plt.ion()
 
-# while not stable_point:
+outer_loop_length = 10
+
 for n in range(outer_loop_length):
-    edge_weights = [float(last_conductivity[u][v]) * 10 for u, v in G.edges()]
+    edge_weights = [float(last_conductivity_matrix[u][v]) * 10 for u, v in G.edges()]
     nx.draw_networkx_nodes(G, pos, node_color='black', node_size=500)
-    nx.draw_networkx_nodes(G, pos, nodelist=start_nodes, node_color='red', node_size=500)
-    nx.draw_networkx_nodes(G, pos, nodelist=end_nodes, node_color='green', node_size=500)
+    nx.draw_networkx_nodes(G, pos, nodelist=source_nodes, node_color='red', node_size=500)
+    nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, node_color='green', node_size=500)
     nx.draw_networkx_edges(G, pos, width=edge_weights, edge_color='gray', alpha=0.3)
 
-    plt.pause(0.005)
+    plt.pause(1)
 
-    conductivity_by_length = last_conductivity * inverse_length
+    if 0 <= n < 3:
+        if n == 0:
+            print("n == 0")
+        inclusive_model = SlimeMouldModel(model_params, graph, last_conductivity_matrix, efficiency_matrix_1)
+    elif 3 <= n < 6:
+        if n == 3:
+            print("n == 3")
+        inclusive_model = SlimeMouldModel(model_params, graph, last_conductivity_matrix, efficiency_matrix_2)
+    else:
+        if n == 201:
+            print("n == 6")
+        inclusive_model = SlimeMouldModel(model_params, graph, last_conductivity_matrix, efficiency_matrix_3)
 
-    for nn in range(pressure_loop):
-        next_pressure = np.array([update_pressure_at_node(i, last_pressure, last_conductivity[i], flow_vector[i], epsilon) for i in range(last_pressure.size)])
-        last_pressure = next_pressure
-        # print("Next pressure")
-        # print(str(next_pressure))
+    pressure, updated_conductivity_matrix = inclusive_model.run_model()
 
-    updated_conductivity = [update_conductivity_row(i, last_conductivity[i], conductivity_by_length[i], last_pressure, mu, r) for i in range(number_of_nodes)]
-
-    # print("Next conductivity")
-    # print(str(updated_conductivity))
-
-    last_conductivity = updated_conductivity
+    last_conductivity_matrix = updated_conductivity_matrix
 
     if n < outer_loop_length - 1:
         plt.cla()
@@ -195,5 +279,4 @@ for n in range(outer_loop_length):
 plt.ioff()
 plt.show()
 plt.close()
-
 
