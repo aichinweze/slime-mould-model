@@ -1,8 +1,10 @@
+import asyncio
 import base64
 import json
 import random
 from collections import Counter
 
+import aiohttp
 import requests
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
@@ -112,9 +114,6 @@ class RouteHandler:
         graph_route_weights = get_latest_graph_route_weights(self.firestore_client)
         worker_weights = get_worker_weights(graph_route_weights)
 
-        print("worker_weights: {}".format(worker_weights))
-        print("worker routes: {}".format(self.worker_routes))
-
         selected_route: str = random.choices(self.worker_routes, weights=worker_weights, k=1)[0]
         return selected_route
 
@@ -151,7 +150,17 @@ class RouteHandler:
     def close_subscriber(self):
         self.subscriber.close()
 
-    def execute(self):
+    async def send_requests(self, session, data):
+        async with session.request(
+            method="POST",
+            url=self.select_worker_route(),
+            json=json.dumps(data),
+            headers={'Content-Type': 'application/json'}
+        ) as response:
+            print("Response: {}".format(response.status))
+            return await response.json(content_type=None)
+
+    async def execute(self):
         # Read N messages from Pub/Sub topic
         print("Executing route handler")
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
@@ -159,18 +168,23 @@ class RouteHandler:
         # Read from topic and acknowledge messages
         messages_to_process, ack_ids = self.get_messages_from_topic()
 
-        responses = []
-        for msg in messages_to_process:
-            # Call a Cloud Run function to process the message
-            # TODO: Send requests asynchronously
-            responses.append(requests.post(
-                url=self.select_worker_route(),
-                json=json.dumps(msg),
-                headers={'Content-Type': 'application/json'}
-            ).status_code)
+        async with aiohttp.ClientSession() as session:
+            tasks = [self.send_requests(session, msg) for msg in messages_to_process]
+            results = await asyncio.gather(*tasks)
+            print("Route handler execution results...")
+            print(results)
 
-        item_counts = Counter(responses)
-        print("Responses: " + str(item_counts))
+        # responses = []
+        # for msg in messages_to_process:
+        #     # TODO: Send requests asynchronously
+        #     responses.append(requests.post(
+        #         url=self.select_worker_route(),
+        #         json=json.dumps(msg),
+        #         headers={'Content-Type': 'application/json'}
+        #     ).status_code)
+
+        # item_counts = Counter(responses)
+        # print("Responses: " + str(item_counts))
 
         # Acknowledges the received messages so they will not be sent again.
         if ack_ids:

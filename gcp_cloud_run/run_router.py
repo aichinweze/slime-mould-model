@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -84,16 +85,6 @@ def update_controller(request):
                 edge_latencies.append(Metrics.from_dict(result.to_dict()))
             else:
                 edge_latencies.append(Metrics(edge_id, 2.5, 1, ""))
-
-        # for edge_id in edge_ids:
-        #     edge_ref = metrics_ref.collection(edge_id)
-        #     get_edge_latency_query = edge_ref.order_by(
-        #         field_path="timestamp",
-        #         direction=firestore.Query.DESCENDING
-        #     ).limit(1)
-        #
-        #     result = get_edge_latency_query.get()[0]
-        #     edge_latencies.append(Metrics.from_dict(result.to_dict()))
 
         source_metrics_dict = get_source_entries_from_metrics(edge_latencies)
         efficiency_matrix = build_matrix_from_edge_weights(source_metrics_dict)
@@ -220,7 +211,7 @@ def update_controller(request):
         # Read N messages from Pub/Sub topic
         # Route messages to workers
     route_handler = RouteHandler(workers, PROJECT_ID, SUBSCRIPTION_ID, MAX_MESSAGES, firestore_client)
-    route_handler.execute()
+    asyncio.run(route_handler.execute())
     route_handler.close_subscriber()
 
     print("Completed processing...")
