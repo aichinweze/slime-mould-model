@@ -23,6 +23,7 @@ def get_source_entries_from_metrics(source_metrics: list[Metrics], gamma: float 
     for metric in source_metrics:
         source_entries[metric.edge_id] = min_latency / (metric.avg_latency + gamma)
 
+    print("Flow Control Utils: get_source_entries_from_metrics: {}".format(source_entries))
     return source_entries
 
 def get_worker_node_entries(
