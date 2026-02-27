@@ -8,7 +8,7 @@ from .db.firestore_utils import *
 from .flow_control.flow_control_utils import *
 from .flow_control.route_handler import make_route_weights, RouteHandler
 from .flow_control.slime_mould.graph import SlimeMouldGraph
-from .models.models import SlimeMouldParams
+from .models.models import SlimeMouldParams, time_format
 from .flow_control.slime_mould.slime_mould_model import SlimeMouldModel
 from .models.models import Metrics, GraphRouteWeights
 
@@ -23,6 +23,8 @@ NUMBER_OF_NODES = int(os.getenv("NUMBER_OF_NODES", 5))
 PROJECT_ID = os.getenv("PROJECT_ID", "testing-123")
 SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID", "subscription-testing-123")
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 50))
+
+PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 
 workers = [TARGET_URL_A, TARGET_URL_B, TARGET_URL_C]
 
@@ -42,7 +44,7 @@ def update_controller(request):
     graph = SlimeMouldGraph(edges_dict=edges_dict, source_nodes=source_nodes, sink_nodes=sink_nodes)
     model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime(time_format)
 
     # TODO: Change latency to track time between request being sent and request being processed!!!!!
     # TODO: Deduplication strategy
@@ -96,7 +98,14 @@ def update_controller(request):
 
     # TODO: Calculate efficiency values by combining latency and throughput
 
-    route_handler = RouteHandler(workers, PROJECT_ID, SUBSCRIPTION_ID, MAX_MESSAGES, firestore_client)
+    route_handler = RouteHandler(
+        worker_routes=workers,
+        project_id=PROJECT_ID,
+        subscription_id=SUBSCRIPTION_ID,
+        error_topic_id=PUBLISHER_ERROR_TOPIC_ID,
+        max_messages=MAX_MESSAGES,
+        firestore_client=firestore_client
+    )
     asyncio.run(route_handler.execute())
     route_handler.close_subscriber()
 

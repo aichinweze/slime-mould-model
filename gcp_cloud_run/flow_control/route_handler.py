@@ -1,13 +1,15 @@
 import asyncio
 import json
 import random
+from datetime import datetime
 
 import aiohttp
+from aiohttp import ClientSession
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
 
 from ..db.firestore_utils import get_latest_graph_route_weights
-from ..models.models import RouteWeight, GraphRouteWeights
+from ..models.models import RouteWeight, GraphRouteWeights, time_format
 
 
 # TODO: Simplify and sort out functions here
@@ -59,14 +61,17 @@ class RouteHandler:
                  worker_routes: list[str],
                  project_id: str,
                  subscription_id: str,
+                 error_topic_id: str,
                  max_messages: int,
                  firestore_client: firestore.Client,
     ):
         self.worker_routes = worker_routes
         self.project_id = project_id
         self.subscriber = pubsub_v1.SubscriberClient()
+        self.publisher = pubsub_v1.PublisherClient()
         self.max_messages = max_messages
         self.subscription_id = subscription_id
+        self.error_topic_id = error_topic_id
         self.firestore_client = firestore_client
 
     def select_worker_route(self):
@@ -79,8 +84,8 @@ class RouteHandler:
     def get_messages_from_topic(self):
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
 
-        messages = []
-        ack_ids = []
+        messages: list[dict] = []
+        ack_ids: list[str] = []
 
         try:
             # The subscriber pulls a specific number of messages.
@@ -103,16 +108,31 @@ class RouteHandler:
 
         return messages, ack_ids
 
+    def publish_to_error_topic(self, status_code: int, worker_route: str, data: dict):
+        data["error"] = f"Response {status_code} provided while sending message to worker at {worker_route}"
+        json_payload = json.dumps(data)
+        encoded_payload = json_payload.encode("utf-8")
+
+        publish_result = self.publisher.publish(self.error_topic_id, data=encoded_payload)
+        message_id = publish_result.result()
+        print(f'Message ID: {message_id} published to topic {self.error_topic_id}')
+
     def close_subscriber(self):
         self.subscriber.close()
 
-    async def send_requests(self, session, data):
+    async def send_requests(self, session: ClientSession, data: dict):
+        worker_route = self.select_worker_route()
+        timestamp = datetime.now().strftime(time_format)
+        data["send_timestamp"] = timestamp
+
         async with session.request(
             method="POST",
-            url=self.select_worker_route(),
+            url=worker_route,
             json=json.dumps(data),
             headers={'Content-Type': 'application/json'}
         ) as response:
+            if response.status != 200:
+                self.publish_to_error_topic(response.status, worker_route, data)
             return await response.json(content_type=None)
 
     async def execute(self):

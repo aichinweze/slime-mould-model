@@ -41,30 +41,37 @@ class WorkerB(WorkerBase):
             node_id: int,
             source_currency: str,
             target_currency: str,
+            start_timestamp: str,
             number_of_loops: int = 5,
             delay: int = 5
     ):
         super().__init__(
             node_id=node_id,
             source_currency=source_currency,
-            target_currency=target_currency
+            target_currency=target_currency,
+            start_timestamp=start_timestamp
         )
         self.delay = delay
         self.number_of_loops = number_of_loops
 
-    def execute(self) -> CryptoResult:
+    def execute(self) -> dict:
         request_url = self.build_crypto_price_url(self.currency_pair)
         crypto_results = []
 
         for _ in range(self.number_of_loops):
             response = requests.get(request_url)
             crypto_result = self.extract_crypto_result(response.json())
-
             crypto_results.append(crypto_result)
             time.sleep(self.delay)
 
-        final_result = aggregate_output(crypto_results)
-        print("Worker B: execute: completed job --> {}".format(final_result.to_dict()))
+        self.set_end_timestamp()
+        aggregated_result = aggregate_output(crypto_results)
+        aggregated_result_dict = aggregated_result.to_dict()
 
-        return final_result
+        self.add_latency_to_result()
+        aggregated_result_dict["execution_time"] = self.execution_time
+
+        print("Worker B: execute: completed job --> {}".format(aggregated_result_dict))
+
+        return aggregated_result_dict
 

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+
+time_format = "%Y-%m-%d %H:%M:%S.%f"
+
 @dataclass
 class SlimeMouldParams:
     alpha: float
@@ -38,7 +41,7 @@ class CryptoResult:
         return self.execution_time
 
     def set_timestamp(self):
-        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.timestamp = datetime.now().strftime(time_format)
 
     def to_dict(self) -> dict:
         return {

@@ -37,27 +37,16 @@ def process_routed_request(request):
         if request_json and "data" in request_json:
             source_currency = json.loads(request_json["data"])["source_currency"]
             target_currency = json.loads(request_json["data"])["target_currency"]
+            send_timestamp: str = request_json["send_timestamp"]
 
-            start_time = time.perf_counter()
-
-            worker = WorkerB(NODE_ID, source_currency, target_currency)
+            worker = WorkerB(NODE_ID, source_currency, target_currency, send_timestamp)
             worker_out = worker.execute()
 
-            end_time = time.perf_counter()
-
-            execution_time = end_time - start_time
-
-            topic_path = success_topic_path if worker_out.success_response else error_topic_path
-            topic_id = PUBLISHER_SUCCESS_TOPIC_ID if worker_out.success_response else PUBLISHER_ERROR_TOPIC_ID
-
-            worker_out.set_execution_time(execution_time)
-            worker_out.set_timestamp()
-
-            worker_message = worker_out.to_dict()
-
-            json_payload = json.dumps(worker_message)
+            json_payload = json.dumps(worker_out)
             data = json_payload.encode("utf-8")
 
+            topic_path = success_topic_path if worker_out["success_response"] else error_topic_path
+            topic_id = PUBLISHER_SUCCESS_TOPIC_ID if worker_out["success_response"] else PUBLISHER_ERROR_TOPIC_ID
             publish_result = publisher.publish(topic_path, data=data)
 
             message_id = publish_result.result()
@@ -66,7 +55,5 @@ def process_routed_request(request):
             return message_id
         else:
             raise ValueError("JSON is invalid, or missing a property (either source currency or target currency)")
-
-    # Get source and target currency from P/S message
     return "A thing"
 

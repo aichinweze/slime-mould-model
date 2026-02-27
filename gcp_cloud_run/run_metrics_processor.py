@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 from .db.firestore_utils import collection_exists, get_historical_metrics
 from .metrics_processor.metrics_utils import aggregate_metrics
-from .models.models import CryptoResult, Metrics
+from .models.models import CryptoResult, Metrics, time_format
 
 WINDOW_SIZE = int(os.getenv('WINDOW_SIZE', 5))
 
@@ -27,7 +27,7 @@ def update_metrics(cloud_event: CloudEvent):
 
         metrics_ref = firestore_client.collection(u'metrics')
         edge_ref = metrics_ref.document("edge_metrics").collection(edge_id)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime(time_format)
         new_metric = Metrics(edge_id=edge_id, avg_latency=execution_time, document_count=1, timestamp=timestamp)
         new_metric_ref = edge_ref.document()
 
