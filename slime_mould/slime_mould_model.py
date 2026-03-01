@@ -1,6 +1,6 @@
-from ..slime_mould.model_functions import *
-from ...models.models import SlimeMouldParams
-from ..slime_mould.graph import SlimeMouldGraph
+from slime_mould.model_functions import *
+from models.models import SlimeMouldParams
+from slime_mould.graph import SlimeMouldGraph
 
 class SlimeMouldModel:
     def __init__(

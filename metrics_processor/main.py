@@ -7,9 +7,9 @@ import functions_framework
 from cloudevents.http import CloudEvent
 from google.cloud import firestore
 
-from .db.firestore_utils import collection_exists, get_historical_metrics
-from .metrics_processor.metrics_utils import aggregate_metrics
-from .models.models import CryptoResult, Metrics, time_format
+from utils.firestore_utils import collection_exists, get_historical_metrics
+from utils.metrics_utils import aggregate_metrics
+from models.models import CryptoResult, Metrics, time_format
 
 WINDOW_SIZE = int(os.getenv('WINDOW_SIZE', 5))
 

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from ..models.models import CryptoResult, time_format
+from models.models import CryptoResult, time_format
 
 
 class WorkerBase(ABC):

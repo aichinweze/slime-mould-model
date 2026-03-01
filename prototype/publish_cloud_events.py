@@ -3,15 +3,11 @@ import os
 import random
 import time
 
-import requests
-import threading
-
 from datetime import datetime
 
-from cloudevents.http import CloudEvent
 from google.cloud import pubsub_v1
 
-from gcp_cloud_run.models.models import CryptoResult
+from models.models import CryptoResult
 
 os.environ["PROJECT_ID"] = "testing-123"
 os.environ['PUBLISHER_SUCCESS_TOPIC_ID'] = "worker-success-topic"

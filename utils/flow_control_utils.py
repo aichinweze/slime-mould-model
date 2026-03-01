@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from ..models.models import RouteWeight, Metrics
+from models.models import RouteWeight, Metrics
 
 
 def get_source_entries_from_route_weight(source_route_weights: list[RouteWeight]) -> dict[str, float]:

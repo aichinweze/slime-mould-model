@@ -2,7 +2,7 @@ from google.cloud import firestore
 from google.cloud.firestore_v1 import CollectionReference
 from google.cloud.firestore_v1.base_document import BaseDocumentReference
 
-from ..models.models import GraphRouteWeights, Metrics
+from models.models import GraphRouteWeights, Metrics
 
 
 def collection_exists(collection_ref: CollectionReference) -> bool:

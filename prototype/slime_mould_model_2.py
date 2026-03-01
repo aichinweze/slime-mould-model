@@ -1,14 +1,13 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from numpy.ma.core import outer
 
 from numpy.typing import NDArray
 
-from gcp_cloud_run.flow_control.flow_control_utils import build_matrix_from_edge_weights
-from gcp_cloud_run.flow_control.slime_mould.graph import SlimeMouldGraph
-from gcp_cloud_run.models.models import SlimeMouldParams
-from gcp_cloud_run.flow_control.slime_mould.slime_mould_model import SlimeMouldModel
+from flow_control import build_matrix_from_edge_weights
+from slime_mould.graph import SlimeMouldGraph
+from models.models import SlimeMouldParams
+from slime_mould.slime_mould_model import SlimeMouldModel
 
 
 def make_adjacency_matrix(connection_dict: dict[int, list[int]]):

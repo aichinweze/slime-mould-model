@@ -2,7 +2,7 @@ import time
 
 import requests
 
-from .worker_base import WorkerBase
+from workers.worker_base import WorkerBase
 
 
 class WorkerA(WorkerBase):

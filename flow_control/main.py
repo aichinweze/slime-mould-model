@@ -4,13 +4,11 @@ from datetime import datetime
 
 import functions_framework
 
-from .db.firestore_utils import *
-from .flow_control.flow_control_utils import *
-from .flow_control.route_handler import make_route_weights, RouteHandler
-from .flow_control.slime_mould.graph import SlimeMouldGraph
-from .models.models import SlimeMouldParams, time_format
-from .flow_control.slime_mould.slime_mould_model import SlimeMouldModel
-from .models.models import Metrics, GraphRouteWeights
+from utils.firestore_utils import *
+from utils.flow_control_utils import *
+from flow_control.router_handler import make_route_weights, RouteHandler
+from slime_mould.slime_mould_model import SlimeMouldGraph, SlimeMouldModel
+from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
 
 # TODO: Remove test values
 TARGET_URL_A = os.getenv("TARGET_URL", "http://localhost:8081")

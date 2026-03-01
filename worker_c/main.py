@@ -1,11 +1,10 @@
 import json
 import os
-import time
 
 import functions_framework
 from google.cloud import pubsub_v1
 
-from .workers.worker_c import WorkerC
+from workers.worker_c import WorkerC
 
 # TODO: Remove test values
 PROJECT_ID = os.environ.get('PROJECT_ID')

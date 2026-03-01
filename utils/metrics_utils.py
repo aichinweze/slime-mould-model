@@ -1,4 +1,4 @@
-from ..models.models import Metrics
+from models.models import Metrics
 
 def aggregate_metrics(historical_metrics: list[Metrics], new_metric: Metrics) -> Metrics:
     sum_historical_docs = sum([metric.get_document_count() for metric in historical_metrics])

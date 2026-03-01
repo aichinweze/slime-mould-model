@@ -1,8 +1,8 @@
 import requests
 import time
 
-from ..models.models import CryptoResult
-from .worker_base import WorkerBase
+from models.models import CryptoResult
+from workers.worker_base import WorkerBase
 
 def aggregate_prices(prices: list[float]) -> float:
     return sum(prices) / len(prices)

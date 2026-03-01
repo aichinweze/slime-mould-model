@@ -1,8 +1,7 @@
 import time
 import requests
 
-from ..models.models import CryptoResult
-from .worker_base import WorkerBase
+from workers.worker_base import WorkerBase
 
 class WorkerC(WorkerBase):
     def __init__(self, node_id: int, source_currency: str, target_currency: str, start_timestamp: str, delay: int = 15):

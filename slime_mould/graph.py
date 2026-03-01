@@ -1,4 +1,4 @@
-from ..slime_mould.model_functions import build_adjacency_matrix
+from slime_mould.model_functions import build_adjacency_matrix
 
 class SlimeMouldGraph:
     def __init__(self, edges_dict: dict[int, list[int]], source_nodes: list[int], sink_nodes: list[int]):

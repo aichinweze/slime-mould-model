@@ -8,8 +8,8 @@ from aiohttp import ClientSession
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
 
-from ..db.firestore_utils import get_latest_graph_route_weights
-from ..models.models import RouteWeight, GraphRouteWeights, time_format
+from utils.firestore_utils import get_latest_graph_route_weights
+from models.models import RouteWeight, GraphRouteWeights, time_format
 
 
 # TODO: Simplify and sort out functions here
