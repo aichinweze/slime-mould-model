@@ -160,3 +160,11 @@ class Metrics:
             source["timestamp"]
         )
 
+    def get_avg_latency(self) -> float:
+        return self.avg_latency
+
+    def get_edge_id(self):
+        return self.edge_id
+
+    def get_document_count(self):
+        return self.document_count

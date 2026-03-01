@@ -17,11 +17,11 @@ def get_source_entries_from_route_weight(source_route_weights: list[RouteWeight]
 
 def get_source_entries_from_metrics(source_metrics: list[Metrics], gamma: float = 1e-3) -> dict[str, float]:
     source_entries = {}
-    latencies = [metric.avg_latency for metric in source_metrics]
+    latencies = [metric.get_avg_latency() for metric in source_metrics]
     min_latency = min(latencies)
 
     for metric in source_metrics:
-        source_entries[metric.edge_id] = min_latency / (metric.avg_latency + gamma)
+        source_entries[metric.get_edge_id()] = min_latency / (metric.get_avg_latency() + gamma)
 
     return source_entries
 
@@ -71,7 +71,7 @@ def build_matrix_from_edge_weights(
     complete_conductivities = source_entries | worker_conductivities | sink_conductivities
 
     if len(source_entries) != number_of_edges:
-        # TODO: Do something - fewer rows were retrieved than expected
+        print("Fewer rows retrieved than expecting. Creating zeros matrix of appropriate dimensions...")
         return zeros_matrix
     else:
         for key, value in complete_conductivities.items():

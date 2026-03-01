@@ -46,9 +46,6 @@ def update_controller(request):
 
     timestamp = datetime.now().strftime(time_format)
 
-    # TODO: Change latency to track time between request being sent and request being processed!!!!!
-    # TODO: Deduplication strategy
-
     # Get metrics from metrics table in Firestore database
     if subcollection_exists_in(metrics_ref):
         print("Metrics store information exists. Using to build efficiency matrix...")
@@ -95,8 +92,6 @@ def update_controller(request):
         route_weight_doc_ref.set(graph_route_weights_to_commit.to_dict())
     except Exception as e:
         return f'Unable to complete write to Firestore: {e}', 500
-
-    # TODO: Calculate efficiency values by combining latency and throughput
 
     route_handler = RouteHandler(
         worker_routes=workers,
