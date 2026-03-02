@@ -10,6 +10,8 @@ from flow_control.router_handler import make_route_weights, RouteHandler
 from slime_mould.slime_mould_model import SlimeMouldGraph, SlimeMouldModel
 from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
 
+from google.cloud import firestore
+
 # TODO: Remove test values
 TARGET_URL_A = os.getenv("TARGET_URL", "http://localhost:8081")
 TARGET_URL_B = os.getenv("TARGET_URL", "http://localhost:8082")
@@ -32,7 +34,7 @@ sink_nodes = [4]
 
 # TODO: TIDY THIS FILE
 @functions_framework.http
-def update_controller(request):
+def run_flow_control(request):
     firestore_client = firestore.Client()
 
     route_weight_ref = firestore_client.collection(u'route_weight')
