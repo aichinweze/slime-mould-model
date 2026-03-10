@@ -10,3 +10,5 @@ steps:
       - --entry-point=process_routed_request
       - --trigger-http
       - --runtime=python313
+    env:
+      - PYTHONPATH=../
