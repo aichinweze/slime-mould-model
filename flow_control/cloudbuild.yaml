@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - Flow_Control
+      - --region=us-central1
+      - --source=.flow_control
+      - --entry-point=run_flow_control
+      - --trigger-http
+      - --runtime=python313

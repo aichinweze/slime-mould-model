@@ -13,17 +13,17 @@ from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeig
 from google.cloud import firestore
 
 # TODO: Remove test values
-TARGET_URL_A = os.getenv("TARGET_URL", "http://localhost:8081")
-TARGET_URL_B = os.getenv("TARGET_URL", "http://localhost:8082")
-TARGET_URL_C = os.getenv("TARGET_URL", "http://localhost:8083")
+TARGET_URL_A = os.environ.get("TARGET_URL_A")
+TARGET_URL_B = os.environ.get("TARGET_URL_B")
+TARGET_URL_C = os.environ.get("TARGET_URL_C")
 
 NUMBER_OF_WORKERS = int(os.getenv("NUMBER_OF_WORKERS", 3))
 NUMBER_OF_NODES = int(os.getenv("NUMBER_OF_NODES", 5))
 
 PROJECT_ID = os.getenv("PROJECT_ID", "testing-123")
-SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID", "subscription-testing-123")
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 50))
 
+INPUT_SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID", "subscription-testing-123")
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 
 workers = [TARGET_URL_A, TARGET_URL_B, TARGET_URL_C]
@@ -32,7 +32,6 @@ edges_dict = { 0: [1, 2, 3], 1: [0, 4], 2: [0, 4], 3: [0, 4], 4: [1, 2, 3] }
 source_nodes = [0]
 sink_nodes = [4]
 
-# TODO: TIDY THIS FILE
 @functions_framework.http
 def run_flow_control(request):
     firestore_client = firestore.Client()
@@ -96,7 +95,7 @@ def run_flow_control(request):
     route_handler = RouteHandler(
         worker_routes=workers,
         project_id=PROJECT_ID,
-        subscription_id=SUBSCRIPTION_ID,
+        subscription_id=INPUT_SUBSCRIPTION_ID,
         error_topic_id=PUBLISHER_ERROR_TOPIC_ID,
         max_messages=MAX_MESSAGES,
         firestore_client=firestore_client

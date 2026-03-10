@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - Worker_A
+      - --region=us-central1
+      - --source=.worker_a
+      - --entry-point=process_routed_request
+      - --trigger-http
+      - --runtime=python313

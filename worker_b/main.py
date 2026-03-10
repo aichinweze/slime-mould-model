@@ -6,7 +6,6 @@ from google.cloud import pubsub_v1
 
 from workers.worker_b import WorkerB
 
-# TODO: Remove test values
 PROJECT_ID = os.environ.get('PROJECT_ID')
 PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
@@ -16,10 +15,6 @@ publisher = pubsub_v1.PublisherClient()
 
 success_topic_path = publisher.topic_path(PROJECT_ID, PUBLISHER_SUCCESS_TOPIC_ID)
 error_topic_path = publisher.topic_path(PROJECT_ID, PUBLISHER_ERROR_TOPIC_ID)
-
-# Indicate which worker type is supposed to be used in this container
-# TODO: Throw an error if this is not specified
-worker_type = os.environ.get("WORKER_TYPE")
 
 @functions_framework.http
 def process_routed_request(request):

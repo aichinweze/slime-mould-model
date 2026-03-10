@@ -6,7 +6,6 @@ from google.cloud import pubsub_v1
 
 from workers.worker_c import WorkerC
 
-# TODO: Remove test values
 PROJECT_ID = os.environ.get('PROJECT_ID')
 PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')

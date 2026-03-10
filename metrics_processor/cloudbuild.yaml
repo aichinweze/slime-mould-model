@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - Metrics_Processor
+      - --region=us-central1
+      - --source=.metrics_processor
+      - -entry-point=update_metrics
+      - --trigger-topic=worker-success-topic
+      - --runtime=python313
