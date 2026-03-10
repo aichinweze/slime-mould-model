@@ -6,7 +6,7 @@ steps:
       - deploy
       - Worker_A
       - --region=us-central1
-      - --source=.worker_a
+      - --source=.
       - --entry-point=process_routed_request
       - --trigger-http
       - --runtime=python313
