@@ -1,4 +1,9 @@
 steps:
+  - name: 'bash'
+    args:
+      - -c
+      - cp -r workers/ models/ worker_b/
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       - gcloud
@@ -6,7 +11,13 @@ steps:
       - deploy
       - Worker_B
       - --region=us-central1
-      - --source=.worker_b
+      - --source=worker_b/
       - --entry-point=process_routed_request
       - --trigger-http
       - --runtime=python313
+      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+      - --set-env-vars=PUBLISHER_SUCCESS_TOPIC_ID=worker-success-topic
+      - --set-env-vars=PUBLISHER_ERROR_TOPIC_ID=message-error-topic
+
+options:
+  logging: CLOUD_LOGGING_ONLY

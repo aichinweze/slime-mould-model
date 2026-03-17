@@ -1,4 +1,9 @@
 steps:
+  - name: 'bash'
+    args:
+    - -c
+    - cp -r utils/ models/ metrics_processor/
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       - gcloud
@@ -6,7 +11,12 @@ steps:
       - deploy
       - Metrics_Processor
       - --region=us-central1
-      - --source=.metrics_processor
-      - -entry-point=update_metrics
+      - --source=metrics_processor/
+      - --entry-point=update_metrics
       - --trigger-topic=worker-success-topic
       - --runtime=python313
+      - --set-env-vars=DATABASE_ID=adaptimould-firestore
+      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,4 +1,9 @@
 steps:
+  - name: 'bash'
+    args:
+      - -c
+      - cp -r utils/ slime_mould/ models/ flow_control/
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       - gcloud
@@ -6,7 +11,17 @@ steps:
       - deploy
       - Flow_Control
       - --region=us-central1
-      - --source=.flow_control
+      - --source=flow_control/
       - --entry-point=run_flow_control
       - --trigger-http
       - --runtime=python313
+      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+      - --set-env-vars=INPUT_SUBSCRIPTION_ID=router-input
+      - --set-env-vars=PUBLISHER_ERROR_TOPIC_ID=message-error-topic
+      - --set-env-vars=TARGET_URL_A=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_A
+      - --set-env-vars=TARGET_URL_B=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_B
+      - --set-env-vars=TARGET_URL_C=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_C
+      - --set-env-vars=DATABASE_ID=adaptimould-firestore
+
+options:
+  logging: CLOUD_LOGGING_ONLY

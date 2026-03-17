@@ -79,6 +79,7 @@ class RouteHandler:
         worker_weights = get_worker_weights(graph_route_weights)
 
         selected_route: str = random.choices(self.worker_routes, weights=worker_weights, k=1)[0]
+        print("RouteHandler: selected route: {}".format(selected_route))
         return selected_route
 
     def get_messages_from_topic(self):
@@ -125,6 +126,8 @@ class RouteHandler:
         timestamp = datetime.now().strftime(time_format)
         data["send_timestamp"] = timestamp
 
+        print("RouteHandler: data to send: {}".format(data))
+
         async with session.request(
             method="POST",
             url=worker_route,
@@ -132,16 +135,22 @@ class RouteHandler:
             headers={'Content-Type': 'application/json'}
         ) as response:
             if response.status != 200:
+                print("RouteHandler: Failed with response status: {}".format(response.status))
+                print("RouteHandler: response message: {}".format(response.text))
                 self.publish_to_error_topic(response.status, worker_route, data)
             return await response.json(content_type=None)
 
     async def execute(self):
         # Read N messages from Pub/Sub topic
         print("Executing route handler")
+        print("Subscription ID: {}".format(self.subscription_id))
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
 
         # Read from topic and acknowledge messages
         messages_to_process, ack_ids = self.get_messages_from_topic()
+
+        print("RouteHandler: Messages to process: {}".format(messages_to_process))
+        print("RouteHandler: Ack IDs: {}".format(ack_ids))
 
         if len(messages_to_process) > 0:
             async with aiohttp.ClientSession() as session:
