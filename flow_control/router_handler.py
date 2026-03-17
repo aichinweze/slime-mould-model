@@ -1,9 +1,11 @@
 import asyncio
 import json
 import random
-from datetime import datetime
-
 import aiohttp
+import google.auth.transport.requests
+import google.oauth2.id_token
+
+from datetime import datetime
 from aiohttp import ClientSession
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
@@ -126,13 +128,19 @@ class RouteHandler:
         timestamp = datetime.now().strftime(time_format)
         data["send_timestamp"] = timestamp
 
+        auth_req = google.auth.transport.requests.Request()
+        id_token = google.oauth2.id_token.fetch_id_token(auth_req, worker_route)
+
         print("RouteHandler: data to send: {}".format(data))
 
         async with session.request(
             method="POST",
             url=worker_route,
             json=json.dumps(data),
-            headers={'Content-Type': 'application/json'}
+            headers={
+                "Authorization": f"Bearer {id_token}",
+                'Content-Type': 'application/json'
+            }
         ) as response:
             if response.status != 200:
                 print("RouteHandler: Failed with response status: {}".format(response.status))
