@@ -12,6 +12,7 @@ from utils.metrics_utils import aggregate_metrics
 from models.models import CryptoResult, Metrics, time_format
 
 WINDOW_SIZE = int(os.getenv('WINDOW_SIZE', 5))
+DATABASE_ID = os.environ['DATABASE_ID']
 
 @functions_framework.cloud_event
 def update_metrics(cloud_event: CloudEvent):
@@ -19,7 +20,7 @@ def update_metrics(cloud_event: CloudEvent):
         message_data = base64.b64decode(cloud_event.data["message"]["data"]).decode("utf-8")
         parsed_data = json.loads(message_data) if message_data else {}
 
-        firestore_client = firestore.Client()
+        firestore_client = firestore.Client(database=DATABASE_ID)
 
         crypto_result = CryptoResult.from_dict(parsed_data)
         edge_id = crypto_result.get_edge_id()

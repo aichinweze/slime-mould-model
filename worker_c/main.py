@@ -24,17 +24,21 @@ def process_routed_request(request):
     The request will come from the route_handler and contain information about the cryptocurrency pair to convert.
     """
     print("Worker C processing routed request...")
+    print("Worker C: request: {}".format(request))
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
         request_json = json.loads(request.get_json(silent=True))
+        print("Worker C: Request JSON: {}".format(request_json))
         if request_json and "data" in request_json:
-            source_currency = json.loads(request_json["data"])["source_currency"]
-            target_currency = json.loads(request_json["data"])["target_currency"]
+            source_currency = request_json["data"]["source_currency"]
+            target_currency = request_json["data"]["target_currency"]
             send_timestamp: str = request_json["send_timestamp"]
 
             worker = WorkerC(NODE_ID, source_currency, target_currency, send_timestamp)
             worker_out = worker.execute()
+
+            print("Worker C: worker_out: {}".format(worker_out))
 
             json_payload = json.dumps(worker_out)
             data = json_payload.encode("utf-8")

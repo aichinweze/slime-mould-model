@@ -6,13 +6,12 @@ import functions_framework
 
 from utils.firestore_utils import *
 from utils.flow_control_utils import *
-from flow_control.router_handler import make_route_weights, RouteHandler
+from router_handler import make_route_weights, RouteHandler
 from slime_mould.slime_mould_model import SlimeMouldGraph, SlimeMouldModel
 from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
 
 from google.cloud import firestore
 
-# TODO: Remove test values
 TARGET_URL_A = os.environ.get("TARGET_URL_A")
 TARGET_URL_B = os.environ.get("TARGET_URL_B")
 TARGET_URL_C = os.environ.get("TARGET_URL_C")
@@ -20,10 +19,11 @@ TARGET_URL_C = os.environ.get("TARGET_URL_C")
 NUMBER_OF_WORKERS = int(os.getenv("NUMBER_OF_WORKERS", 3))
 NUMBER_OF_NODES = int(os.getenv("NUMBER_OF_NODES", 5))
 
-PROJECT_ID = os.getenv("PROJECT_ID", "testing-123")
+PROJECT_ID = os.getenv("PROJECT_ID")
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 50))
+DATABASE_ID = os.environ['DATABASE_ID']
 
-INPUT_SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID", "subscription-testing-123")
+INPUT_SUBSCRIPTION_ID = os.environ.get("INPUT_SUBSCRIPTION_ID")
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 
 workers = [TARGET_URL_A, TARGET_URL_B, TARGET_URL_C]
@@ -34,7 +34,16 @@ sink_nodes = [4]
 
 @functions_framework.http
 def run_flow_control(request):
-    firestore_client = firestore.Client()
+    firestore_client = firestore.Client(database=DATABASE_ID)
+
+    route_handler = RouteHandler(
+        worker_routes=workers,
+        project_id=PROJECT_ID,
+        subscription_id=INPUT_SUBSCRIPTION_ID,
+        error_topic_id=PUBLISHER_ERROR_TOPIC_ID,
+        max_messages=MAX_MESSAGES,
+        firestore_client=firestore_client
+    )
 
     route_weight_ref = firestore_client.collection(u'route_weight')
     metrics_ref = firestore_client.collection(u'metrics').document("edge_metrics")
@@ -92,14 +101,6 @@ def run_flow_control(request):
     except Exception as e:
         return f'Unable to complete write to Firestore: {e}', 500
 
-    route_handler = RouteHandler(
-        worker_routes=workers,
-        project_id=PROJECT_ID,
-        subscription_id=INPUT_SUBSCRIPTION_ID,
-        error_topic_id=PUBLISHER_ERROR_TOPIC_ID,
-        max_messages=MAX_MESSAGES,
-        firestore_client=firestore_client
-    )
     asyncio.run(route_handler.execute())
     route_handler.close_subscriber()
 
