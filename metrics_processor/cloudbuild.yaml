@@ -15,6 +15,7 @@ steps:
       - --entry-point=update_metrics
       - --trigger-topic=worker-success-topic
       - --runtime=python313
+      - --service-account=adaptimould-metrics-account@nomadic-botany-470921-k0.iam.gserviceaccount.com
       - --set-env-vars=DATABASE_ID=adaptimould-firestore
       - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
 

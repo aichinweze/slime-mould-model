@@ -15,6 +15,7 @@ steps:
       - --entry-point=process_routed_request
       - --trigger-http
       - --runtime=python313
+      - --service-account=adaptimould-worker-account@nomadic-botany-470921-k0.iam.gserviceaccount.com
       - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
       - --set-env-vars=PUBLISHER_SUCCESS_TOPIC_ID=worker-success-topic
       - --set-env-vars=PUBLISHER_ERROR_TOPIC_ID=message-error-topic
