@@ -1,3 +1,5 @@
+import logging
+
 from google.cloud import firestore
 from google.cloud.firestore_v1 import CollectionReference
 from google.cloud.firestore_v1.base_document import BaseDocumentReference
@@ -20,7 +22,7 @@ def subcollection_exists_in(doc_ref: BaseDocumentReference) -> bool:
 def document_exists(document_ref: BaseDocumentReference) -> bool:
     doc = document_ref.get()
     doc_exists = doc.exists
-    print(f"Checking if document exists in Metrics store: {doc_exists}: data: {doc.to_dict()}")
+    logging.debug(f"Checking if document exists in Metrics store: {doc_exists}: data: {doc.to_dict()}")
 
     if doc_exists:
         return True

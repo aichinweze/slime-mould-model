@@ -1,3 +1,5 @@
+import logging
+
 import requests
 import time
 
@@ -71,7 +73,7 @@ class WorkerB(WorkerBase):
         self.add_latency_to_result()
         aggregated_result_dict["execution_time"] = self.execution_time
 
-        print("Worker B: execute: completed job --> {}".format(aggregated_result_dict))
+        logging.debug("Worker B: execute: completed job --> {}".format(aggregated_result_dict))
 
         return aggregated_result_dict
 

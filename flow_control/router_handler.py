@@ -4,6 +4,8 @@ import random
 import aiohttp
 import google.auth.transport.requests
 import google.oauth2.id_token
+import logging
+import google.cloud.logging
 
 from datetime import datetime
 from aiohttp import ClientSession
@@ -14,7 +16,6 @@ from utils.firestore_utils import get_latest_graph_route_weights
 from models.models import RouteWeight, GraphRouteWeights, time_format
 
 
-# TODO: Simplify and sort out functions here
 def get_worker_route_weights(conductivity_list: list[float], source_node: int = 0, sink_node: int = 4) -> list[float]:
     worker_weights = []
 
@@ -81,7 +82,7 @@ class RouteHandler:
         worker_weights = get_worker_weights(graph_route_weights)
 
         selected_route: str = random.choices(self.worker_routes, weights=worker_weights, k=1)[0]
-        print("RouteHandler: selected route: {}".format(selected_route))
+        logging.debug("RouteHandler: selected route: {}".format(selected_route))
         return selected_route
 
     def get_messages_from_topic(self):
@@ -100,14 +101,14 @@ class RouteHandler:
             )
 
             if not response.received_messages:
-                print("No messages received in this pull request.")
+                logging.info("No messages received in this pull request.")
             else:
                 for received_message in response.received_messages:
                     data: dict = json.loads(received_message.message.data.decode("utf-8"))
                     messages.append({"data": data})
                     ack_ids.append(received_message.ack_id)
         except Exception as e:
-            print(f"An error occurred during Pub/Sub pull: {e}")
+            logging.error("An error occurred during Pub/Sub pull: {}".format(e))
 
         return messages, ack_ids
 
@@ -118,7 +119,7 @@ class RouteHandler:
 
         publish_result = self.publisher.publish(self.error_topic_id, data=encoded_payload)
         message_id = publish_result.result()
-        print(f'Message ID: {message_id} published to topic {self.error_topic_id}')
+        logging.debug(f"Message ID: {message_id} published to topic {self.error_topic_id}")
 
     def close_subscriber(self):
         self.subscriber.close()
@@ -131,7 +132,7 @@ class RouteHandler:
         auth_req = google.auth.transport.requests.Request()
         id_token = google.oauth2.id_token.fetch_id_token(auth_req, worker_route)
 
-        print("RouteHandler: data to send: {}".format(data))
+        logging.debug("RouteHandler: data to send: {}".format(data))
 
         async with session.request(
             method="POST",
@@ -143,33 +144,33 @@ class RouteHandler:
             }
         ) as response:
             if response.status != 200:
-                print("RouteHandler: Failed with response status: {}".format(response.status))
-                print("RouteHandler: response message: {}".format(response.text))
+                logging.error("RouteHandler: Failed with response status: {}".format(response.status))
+                logging.error("RouteHandler: response message: {}".format(response.text))
                 self.publish_to_error_topic(response.status, worker_route, data)
             return await response.json(content_type=None)
 
     async def execute(self):
         # Read N messages from Pub/Sub topic
-        print("Executing route handler")
-        print("Subscription ID: {}".format(self.subscription_id))
+        logging.info("Executing route handler")
+        logging.info("Subscription ID: {}".format(self.subscription_id))
         subscription_path = self.subscriber.subscription_path(self.project_id, self.subscription_id)
 
         # Read from topic and acknowledge messages
         messages_to_process, ack_ids = self.get_messages_from_topic()
 
-        print("RouteHandler: Messages to process: {}".format(messages_to_process))
-        print("RouteHandler: Ack IDs: {}".format(ack_ids))
+        logging.debug("RouteHandler: Messages to process: {}".format(messages_to_process))
+        logging.debug("RouteHandler: Ack IDs: {}".format(ack_ids))
 
         if len(messages_to_process) > 0:
             async with aiohttp.ClientSession() as session:
                 tasks = [self.send_requests(session, msg) for msg in messages_to_process]
                 results = await asyncio.gather(*tasks)
-                print("Route handler execution results...")
-                print(results)
+                logging.debug("Route handler execution results...")
+                logging.debug(results)
 
             # Acknowledges the received messages so they will not be sent again.
             if ack_ids:
                 self.subscriber.acknowledge(
                     request={"subscription": subscription_path, "ack_ids": ack_ids}
                 )
-                print(f"Received and acknowledged {len(ack_ids)} messages.")
+                logging.info(f"Received and acknowledged {len(ack_ids)} messages.")

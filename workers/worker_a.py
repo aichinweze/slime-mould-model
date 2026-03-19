@@ -1,3 +1,4 @@
+import logging
 import time
 
 import requests
@@ -30,6 +31,6 @@ class WorkerA(WorkerBase):
 
         time.sleep(self.delay)
 
-        print("Worker A: execute: completed job --> {}".format(crypto_result_dict))
+        logging.debug("Worker A: execute: completed job --> {}".format(crypto_result_dict))
 
         return crypto_result_dict
