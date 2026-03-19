@@ -1,5 +1,6 @@
 import time
 import requests
+import logging
 
 from workers.worker_base import WorkerBase
 
@@ -27,7 +28,7 @@ class WorkerC(WorkerBase):
         crypto_result_dict = crypto_result.to_dict()
         crypto_result_dict["execution_time"] = self.execution_time
 
-        print("Worker C: execute: completed job --> {}".format(crypto_result_dict))
+        logging.debug("Worker C: execute: completed job --> {}".format(crypto_result_dict))
 
         return crypto_result_dict
 

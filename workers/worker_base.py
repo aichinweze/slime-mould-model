@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -69,7 +70,7 @@ class WorkerBase(ABC):
 
         time_taken = end_time - start_time
 
-        print(f"Send timestamp = {self.end_timestamp}. End timestamp = {self.start_timestamp}. Time taken = {time_taken}")
-        print(f"Time taken in seconds = {time_taken.total_seconds()} and microseconds {time_taken.microseconds}")
+        logging.debug(f"Send timestamp = {self.end_timestamp}. End timestamp = {self.start_timestamp}. Time taken = {time_taken}")
+        logging.debug(f"Time taken in seconds = {time_taken.total_seconds()} and microseconds {time_taken.microseconds}")
 
         self.execution_time = time_taken.total_seconds()
