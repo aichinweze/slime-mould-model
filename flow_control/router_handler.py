@@ -77,9 +77,6 @@ class RouteHandler:
         self.error_topic_id = error_topic_id
         self.firestore_client = firestore_client
 
-        self.logging_client = google.cloud.logging.Client(project=project_id)
-        self.logging_client.setup_logging()
-
     def select_worker_route(self):
         graph_route_weights = get_latest_graph_route_weights(self.firestore_client)
         worker_weights = get_worker_weights(graph_route_weights)
