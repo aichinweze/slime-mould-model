@@ -77,10 +77,7 @@ class RouteHandler:
         self.error_topic_id = error_topic_id
         self.firestore_client = firestore_client
 
-    def select_worker_route(self):
-        graph_route_weights = get_latest_graph_route_weights(self.firestore_client)
-        worker_weights = get_worker_weights(graph_route_weights)
-
+    def select_worker_route(self, worker_weights: list[float]):
         selected_route: str = random.choices(self.worker_routes, weights=worker_weights, k=1)[0]
         logging.debug("RouteHandler: selected route: {}".format(selected_route))
         return selected_route
@@ -124,8 +121,8 @@ class RouteHandler:
     def close_subscriber(self):
         self.subscriber.close()
 
-    async def send_requests(self, session: ClientSession, data: dict):
-        worker_route = self.select_worker_route()
+    async def send_requests(self, session: ClientSession, data: dict, worker_weights: list[float]):
+        worker_route = self.select_worker_route(worker_weights)
         timestamp = datetime.now().strftime(time_format)
         data["send_timestamp"] = timestamp
 
@@ -137,7 +134,7 @@ class RouteHandler:
         async with session.request(
             method="POST",
             url=worker_route,
-            json=json.dumps(data),
+            json=data,
             headers={
                 "Authorization": f"Bearer {id_token}",
                 'Content-Type': 'application/json'
@@ -162,8 +159,11 @@ class RouteHandler:
         logging.debug("RouteHandler: Ack IDs: {}".format(ack_ids))
 
         if len(messages_to_process) > 0:
+            graph_route_weights = get_latest_graph_route_weights(self.firestore_client)
+            worker_weights = get_worker_weights(graph_route_weights)
+
             async with aiohttp.ClientSession() as session:
-                tasks = [self.send_requests(session, msg) for msg in messages_to_process]
+                tasks = [self.send_requests(session, msg, worker_weights) for msg in messages_to_process]
                 results = await asyncio.gather(*tasks)
                 logging.debug("Route handler execution results...")
                 logging.debug(results)

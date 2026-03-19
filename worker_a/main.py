@@ -34,7 +34,7 @@ def process_routed_request(request):
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
-        request_json = json.loads(request.get_json(silent=True))
+        request_json = request.get_json(silent=True)
         logging.debug("Worker A: Request JSON: {}".format(request_json))
         if request_json and "data" in request_json:
             source_currency: str = request_json["data"]["source_currency"]
