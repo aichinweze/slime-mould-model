@@ -10,6 +10,7 @@ dependencies = [
     "functions-framework>=3.10.1",
     "google-api-core>=2.30.0",
     "google-cloud-firestore>=2.23.0",
+    "google-cloud-logging>=3.14.0",
     "google-cloud-pubsub>=2.35.0",
     "matplotlib>=3.10.8",
     "networkx>=3.6.1",

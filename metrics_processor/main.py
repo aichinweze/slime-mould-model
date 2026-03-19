@@ -1,9 +1,11 @@
 import base64
 import json
 import os
-from datetime import datetime
-
 import functions_framework
+import logging
+import google.cloud.logging
+
+from datetime import datetime
 from cloudevents.http import CloudEvent
 from google.cloud import firestore
 
@@ -11,11 +13,17 @@ from utils.firestore_utils import collection_exists, get_historical_metrics
 from utils.metrics_utils import aggregate_metrics
 from models.models import CryptoResult, Metrics, time_format
 
+PROJECT_ID = os.getenv("PROJECT_ID")
 WINDOW_SIZE = int(os.getenv('WINDOW_SIZE', 5))
 DATABASE_ID = os.environ['DATABASE_ID']
 
 @functions_framework.cloud_event
 def update_metrics(cloud_event: CloudEvent):
+    client = google.cloud.logging.Client(project=PROJECT_ID)
+    client.setup_logging()
+
+    logging.getLogger().setLevel(logging.DEBUG)
+
     if "message" in cloud_event.data and "data" in cloud_event.data["message"]:
         message_data = base64.b64decode(cloud_event.data["message"]["data"]).decode("utf-8")
         parsed_data = json.loads(message_data) if message_data else {}

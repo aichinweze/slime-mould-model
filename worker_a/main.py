@@ -1,7 +1,9 @@
 import json
 import os
-
 import functions_framework
+import logging
+import google.cloud.logging
+
 from google.cloud import pubsub_v1
 
 from workers.worker_a import WorkerA
@@ -22,13 +24,18 @@ def process_routed_request(request):
     This function is triggered by the Router and implements the specified worker type (from environment variable).
     The request will come from the route_handler and contain information about the cryptocurrency pair to convert.
     """
-    print("Worker A processing routed request...")
-    print("Worker A: request: {}".format(request))
+    client = google.cloud.logging.Client(project=PROJECT_ID)
+    client.setup_logging()
+
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    logging.debug("Worker A processing routed request...")
+    logging.debug("Worker A: request: {}".format(request))
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
         request_json = json.loads(request.get_json(silent=True))
-        print("Worker A: Request JSON: {}".format(request_json))
+        logging.debug("Worker A: Request JSON: {}".format(request_json))
         if request_json and "data" in request_json:
             source_currency: str = request_json["data"]["source_currency"]
             target_currency: str = request_json["data"]["target_currency"]
@@ -39,7 +46,7 @@ def process_routed_request(request):
             worker = WorkerA(NODE_ID, source_currency, target_currency, send_timestamp)
             worker_out = worker.execute()
 
-            print("Worker A: worker_out: {}".format(worker_out))
+            logging.debug("Worker A: worker_out: {}".format(worker_out))
 
             json_payload = json.dumps(worker_out)
             data = json_payload.encode("utf-8")
@@ -49,9 +56,9 @@ def process_routed_request(request):
             publish_result = publisher.publish(topic_path, data=data)
 
             message_id = publish_result.result()
-            print(f'Message ID: {message_id} published to topic {topic_id}')
+            logging.debug(f'Message ID: {message_id} published to topic {topic_id}')
 
             return message_id
         else:
             raise ValueError("JSON is invalid, or missing a property (either source currency or target currency)")
-    return "A thing"
+    return "Worker A completed processing request"
