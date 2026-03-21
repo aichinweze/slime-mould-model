@@ -10,19 +10,23 @@ steps:
       - functions
       - deploy
       - Flow_Control
-      - --region=us-central1
+      - --region={_REGION}
       - --source=flow_control/
       - --entry-point=run_flow_control
       - --trigger-http
       - --runtime=python313
-      - --service-account=adaptimould-service-account@nomadic-botany-470921-k0.iam.gserviceaccount.com
-      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+      - --service-account=adaptimould-service-account@{_PROJECT_ID}.iam.gserviceaccount.com
+      - --set-env-vars=PROJECT_ID={_PROJECT_ID}
       - --set-env-vars=INPUT_SUBSCRIPTION_ID=router-input
       - --set-env-vars=PUBLISHER_ERROR_TOPIC_ID=message-error-topic
-      - --set-env-vars=TARGET_URL_A=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_A
-      - --set-env-vars=TARGET_URL_B=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_B
-      - --set-env-vars=TARGET_URL_C=https://us-central1-nomadic-botany-470921-k0.cloudfunctions.net/Worker_C
+      - --set-env-vars=TARGET_URL_A=https://{_REGION}-{_PROJECT_ID}.cloudfunctions.net/Worker_A
+      - --set-env-vars=TARGET_URL_B=https://{_REGION}-{_PROJECT_ID}.cloudfunctions.net/Worker_B
+      - --set-env-vars=TARGET_URL_C=https://{_REGION}-{_PROJECT_ID}.cloudfunctions.net/Worker_C
       - --set-env-vars=DATABASE_ID=adaptimould-firestore
+
+substitutions:
+  _PROJECT_ID: your-project-id
+  _REGION: us-central1
 
 options:
   logging: CLOUD_LOGGING_ONLY
