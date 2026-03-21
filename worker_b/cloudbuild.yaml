@@ -10,15 +10,19 @@ steps:
       - functions
       - deploy
       - Worker_B
-      - --region=us-central1
+      - --region=${_REGION}
       - --source=worker_b/
       - --entry-point=process_routed_request
       - --trigger-http
       - --runtime=python313
-      - --service-account=adaptimould-worker-account@nomadic-botany-470921-k0.iam.gserviceaccount.com
-      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+      - --service-account=adaptimould-worker-account@${_PROJECT_ID}.iam.gserviceaccount.com
+      - --set-env-vars=PROJECT_ID=${_PROJECT_ID}
       - --set-env-vars=PUBLISHER_SUCCESS_TOPIC_ID=worker-success-topic
       - --set-env-vars=PUBLISHER_ERROR_TOPIC_ID=message-error-topic
+
+substitutions:
+  _PROJECT_ID: your-project-id
+  _REGION: us-central1
 
 options:
   logging: CLOUD_LOGGING_ONLY

@@ -10,14 +10,18 @@ steps:
       - functions
       - deploy
       - Metrics_Processor
-      - --region=us-central1
+      - --region=${_REGION}
       - --source=metrics_processor/
       - --entry-point=update_metrics
       - --trigger-topic=worker-success-topic
       - --runtime=python313
-      - --service-account=adaptimould-metrics-account@nomadic-botany-470921-k0.iam.gserviceaccount.com
+      - --service-account=adaptimould-metrics-account@${_PROJECT_ID}.iam.gserviceaccount.com
       - --set-env-vars=DATABASE_ID=adaptimould-firestore
-      - --set-env-vars=PROJECT_ID=nomadic-botany-470921-k0
+      - --set-env-vars=PROJECT_ID=${_PROJECT_ID}
+
+substitutions:
+  _PROJECT_ID: your-project-id
+  _REGION: us-central1
 
 options:
   logging: CLOUD_LOGGING_ONLY
