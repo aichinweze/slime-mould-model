@@ -68,10 +68,10 @@ def run_flow_control(request):
         # Build efficiency matrix to use in updating conductivity matrix
         edge_ids = get_edge_ids_from_dict(edges_dict)
         edge_latencies: list[Metrics] = build_metrics_for_edges(edge_ids, metrics_ref)
-        source_metrics_dict = get_source_entries_from_metrics(edge_latencies)
+        source_metrics_dict = get_source_metrics_dict(edge_latencies)
 
         logging.debug("Efficiency metrics: {}".format(source_metrics_dict))
-        efficiency_matrix = build_matrix_from_edge_weights(source_metrics_dict)
+        efficiency_matrix = build_matrix_from_source_conductivities(source_metrics_dict)
     else:
         logging.info("Metrics store contains no information, so no efficiency matrix could be created")
         efficiency_matrix = None
@@ -88,8 +88,8 @@ def run_flow_control(request):
         iteration = graph_route_weights.get_iteration() + 1
         route_weights = graph_route_weights.get_route_weights()
 
-        source_cond_dict = get_source_entries_from_route_weight(route_weights)
-        conductivity_matrix = build_matrix_from_edge_weights(source_cond_dict)
+        source_cond_dict = get_route_conductivities_from_route_weight(route_weights)
+        conductivity_matrix = build_matrix_from_source_conductivities(source_cond_dict)
 
         # Get efficiency matrix from above
         model = SlimeMouldModel(model_params, graph, efficiency_matrix, conductivity_matrix)
