@@ -73,6 +73,11 @@ class CryptoResult:
     def set_execution_time(self, execution_time: float):
         self.execution_time = execution_time
 
+    def __eq__(self, other):
+        if not isinstance(other, CryptoResult):
+            return NotImplemented
+        return self.__dict__ == other.__dict__
+
 
 @dataclass
 class CryptoQueryParams:
@@ -168,3 +173,8 @@ class Metrics:
 
     def get_document_count(self):
         return self.document_count
+
+    def __eq__(self, other):
+        if not isinstance(other, Metrics):
+            return NotImplemented
+        return self.__dict__ == other.__dict__

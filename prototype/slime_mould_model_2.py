@@ -279,3 +279,22 @@ plt.ioff()
 plt.show()
 plt.close()
 
+
+# TODO: Move to unit test
+# edges_dict_1 = {
+#     0: [1, 2, 3],
+#     1: [0, 4],
+#     2: [0, 4],
+#     3: [0, 4],
+#     4: [1, 2, 3]
+# }
+#
+# graph = SlimeMouldGraph(edges_dict=edges_dict_1, source_nodes=[0], sink_nodes=[4])
+# model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
+# model = SlimeMouldModel(slime_mould_params=model_params, slime_mould_graph=graph)
+#
+# pressure, conductivity = model.run_model()
+#
+# print(pressure)
+# print(conductivity)
+

@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -10,24 +12,37 @@ def build_flow_vector(number_of_nodes: int, source_nodes: list[int], sink_nodes:
     positive_flow = len(source_nodes)
     negative_flow = -len(sink_nodes)
 
-    flow_vector = np.zeros(number_of_nodes, dtype=float)
-    flow_vector[source_nodes] = 1 / positive_flow
-    flow_vector[sink_nodes] = 1 / negative_flow
+    failed_index_check = True in [idx >= number_of_nodes for idx in (source_nodes + sink_nodes)]
 
-    return flow_vector
+    if positive_flow == 0 or negative_flow == 0:
+        logging.error("build_flow_vector: You must specify at least one index for source node and sink nodes")
+        return np.zeros(number_of_nodes)
+    elif failed_index_check:
+        logging.error(f"build_flow_vector: Bad indices were provided to function. Source nodes indices = {source_nodes},"
+                      f" sink nodes indices = {sink_nodes}, number of nodes = {number_of_nodes}")
+        return np.zeros(number_of_nodes)
+    else:
+        flow_vector = np.zeros(number_of_nodes, dtype=float)
+        flow_vector[source_nodes] = 1 / positive_flow
+        flow_vector[sink_nodes] = 1 / negative_flow
+
+        return flow_vector
 
 def build_adjacency_matrix(connection_dict: dict[int, list[int]]) -> NDArray[float]:
     """Build an adjacency matrix from a dictionary which represents the edges in the matrix."""
     adjacency_list = []
     number_of_nodes = len(connection_dict)
 
-    for idx in range(number_of_nodes):
-        non_zero_row_indices = connection_dict[idx]
-        row = [(1 if arr_index in non_zero_row_indices else 0) for arr_index in range(number_of_nodes)]
-        adjacency_list.append(row)
-        
-    adjacency_matrix = np.array(adjacency_list, dtype=float)
-    return adjacency_matrix
+    if len(connection_dict) == 0:
+        raise ValueError("build_adjacency_matrix: received empty connection dictionary. You must provide connections.")
+    else:
+        for idx in range(number_of_nodes):
+            non_zero_row_indices = connection_dict[idx]
+            row = [(1 if arr_index in non_zero_row_indices else 0) for arr_index in range(number_of_nodes)]
+            adjacency_list.append(row)
+
+        adjacency_matrix = np.array(adjacency_list, dtype=float)
+        return adjacency_matrix
 
 
 def update_pressure_at_node(
