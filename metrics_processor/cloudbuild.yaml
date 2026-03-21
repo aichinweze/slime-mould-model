@@ -10,14 +10,14 @@ steps:
       - functions
       - deploy
       - Metrics_Processor
-      - --region={_REGION}
+      - --region=${_REGION}
       - --source=metrics_processor/
       - --entry-point=update_metrics
       - --trigger-topic=worker-success-topic
       - --runtime=python313
-      - --service-account=adaptimould-metrics-account@{_PROJECT_ID}.iam.gserviceaccount.com
+      - --service-account=adaptimould-metrics-account@${_PROJECT_ID}.iam.gserviceaccount.com
       - --set-env-vars=DATABASE_ID=adaptimould-firestore
-      - --set-env-vars=PROJECT_ID={_PROJECT_ID}
+      - --set-env-vars=PROJECT_ID=${_PROJECT_ID}
 
 substitutions:
   _PROJECT_ID: your-project-id
