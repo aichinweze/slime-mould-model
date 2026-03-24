@@ -1,10 +1,5 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
 import "./App.css";
-
-type Screen = "welcome" | "configure" | "results";
 
 function Sidebar() {
   return (
@@ -153,6 +148,66 @@ function GeneratePage() {
   );
 }
 
+type Screen = "welcome" | "configure" | "results";
+
+function BatchSizeInput() {
+  return (
+    <div className="select-message-batch-size">
+      <h2>Select Batch Size</h2>
+      <p>
+        Please select the number of messages to send to Adaptimould. (1 to
+        2,000)
+      </p>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="Enter batch size"
+      />
+    </div>
+  );
+}
+
+function CurrencyTable({
+  title,
+  currencies,
+  selected,
+  onChange,
+}: {
+  title: string;
+  currencies: string[];
+  selected: string[];
+  onChange: (currency: string) => void;
+}) {
+  return (
+    <div className="table-container">
+      <table className="checkbox-table">
+        <thead>
+          <tr>
+            <th>{title}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {currencies.map((currency) => (
+            <tr key={currency}>
+              <td>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(currency)}
+                    onChange={() => onChange(currency)}
+                  />
+                  {currency}
+                </label>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
   return (
     // min-h-screen is needed to vertically center the content, otherwise it will be towards the top of the page
@@ -160,10 +215,10 @@ function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
       <header className="text-4xl">AdaptiMould</header>
 
       <p className="text-sm max-w-2xl">
-        <b>AdaptiMould</b> uses a mathematical model of Physarum polycephalum
-        (slime mould) to adaptively route requests between three worker
-        functions based on real latency feedback. Watch the algorithm
-        self-optimise in real time.
+        <b>AdaptiMould</b> uses a mathematical model of{" "}
+        <em>Physarum polycephalum</em> (slime mould) to adaptively route
+        requests between three worker functions based on real latency feedback.
+        Watch the algorithm self-optimise in real time.
       </p>
 
       <p className="text-sm max-w-2xl">
@@ -172,9 +227,61 @@ function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
         algorithm adapted routing weights over time.
       </p>
 
-      <button className="text-lg max-w-2xl" onClick={onBegin}>
+      <button
+        className="bg-brand text-black px-6 py-2 rounded-md text-lg hover:opacity-90 hover:text-white transition-opacity"
+        onClick={onBegin}
+      >
         Begin
       </button>
+    </div>
+  );
+}
+
+type ConfigureScreenStep = "configure" | "review";
+
+const SOURCE_CURRENCIES = ["BTC", "ETH", "ADA", "LINK", "DOT", "SOL"];
+const TARGET_CURRENCIES = ["USD", "GBP", "EUR", "JPY"];
+
+function ConfigureScreen() {
+  const [step, setStep] = useState<ConfigureScreenStep>("configure");
+  const [batchSize, setBatchSize] = useState<number>(1);
+  const [sourceCurrencies, setSourceCurrencies] = useState<string[]>([]);
+  const [targetCurrencies, setTargetCurrencies] = useState<string[]>([]);
+
+  function onSourceCurrencyChange(currency: string) {
+    setSourceCurrencies((prev) =>
+      prev.includes(currency)
+        ? prev.filter((c) => c !== currency)
+        : [...prev, currency],
+    );
+  }
+
+  function onTargetCurrencyChange(currency: string) {
+    setTargetCurrencies((prev) =>
+      prev.includes(currency)
+        ? prev.filter((c) => c !== currency)
+        : [...prev, currency],
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center flex-col gap-4 min-h-screen">
+      <h2>Configure Adaptimould</h2>
+      <p>Here you can configure the parameters for your Adaptimould run.</p>
+
+      <BatchSizeInput />
+      <CurrencyTable
+        title="Source Currencies"
+        currencies={SOURCE_CURRENCIES}
+        selected={sourceCurrencies}
+        onChange={onSourceCurrencyChange}
+      />
+      <CurrencyTable
+        title="Target Currencies"
+        currencies={TARGET_CURRENCIES}
+        selected={targetCurrencies}
+        onChange={onTargetCurrencyChange}
+      />
     </div>
   );
 }
@@ -187,13 +294,9 @@ export default function App() {
   }
 
   if (screen === "welcome") {
-    return (
-      <div>
-        <WelcomeScreen onBegin={handleBegin} />
-      </div>
-    );
+    return <WelcomeScreen onBegin={handleBegin} />;
   } else if (screen === "configure") {
-    return <div>Configure</div>;
+    return <ConfigureScreen />;
   } else {
     return <div>Results</div>;
   }
