@@ -35,122 +35,15 @@ function ToRunAdaptimouldButton() {
   );
 }
 
-// For Generate Page
-function SelectMessageBatchSize() {
-  return (
-    <div className="select-message-batch-size">
-      <h2>Select Batch Size</h2>
-      <p>
-        Please select the number of messages to send to Adaptimould. (1 to
-        2,000)
-      </p>
-      <input
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        placeholder="Enter batch size"
-      />
-    </div>
-  );
-}
-
-function SourceCurrencyTable() {
-  const sourceCurrencies = [
-    "Bitcoin (BTC)",
-    "Ethereum (ETH)",
-    "Cardano (ADA)",
-    "Chainlink (LINK)",
-    "Polkadot (DOT)",
-    "Solana (SOL)",
-  ];
-
-  return sourceCurrencies.map((currency) => {
-    const row = document.createElement("tr");
-    const cell = document.createElement("td");
-    const cellLabel = document.createElement("label");
-    const cellCheckbox = document.createElement("input");
-
-    cellCheckbox.type = "checkbox";
-    cellCheckbox.value = currency;
-
-    cellLabel.appendChild(cellCheckbox);
-    cellLabel.appendChild(document.createTextNode(" " + currency));
-    cell.appendChild(cellLabel);
-    row.appendChild(cell);
-  });
-}
-
-function CurrencySelection() {
-  const targetCurrencies = [
-    "US Dollar (USD)",
-    "Pound Sterling (GBP)",
-    "Japanese Yen (JPY)",
-    "Bitcoin (BTC)",
-  ];
-
-  const sourceCurrencyTableBody = document.getElementById(
-    "source-currency-table",
-  );
-
-  return (
-    <div className="table-container">
-      <table className="checkbox-table">
-        <thead>
-          <tr>
-            <th>Source Currencies</th>
-          </tr>
-        </thead>
-        <tbody id="source-currency-table"></tbody>
-      </table>
-
-      {/* <table className="checkbox-table">
-        <thead>
-          <tr>
-            <th>Target Currencies</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <label>
-                <input type="checkbox" /> Option 2A
-              </label>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <label>
-                <input type="checkbox" /> Option 2B
-              </label>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <label>
-                <input type="checkbox" /> Option 2C
-              </label>
-            </td>
-          </tr>
-        </tbody>
-      </table> */}
-    </div>
-  );
-}
-
-function GeneratePage() {
-  return (
-    <div className="configure-page">
-      <h2>Configure Adaptimould</h2>
-      <p>Here you can configure the parameters for your Adaptimould run.</p>
-      <SelectMessageBatchSize />
-      <CurrencySelection />
-    </div>
-  );
-}
-
 type Screen = "welcome" | "configure" | "results";
 
-function BatchSizeInput() {
+function BatchSizeInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (input: number) => void;
+}) {
   return (
     <div className="select-message-batch-size">
       <h2>Select Batch Size</h2>
@@ -159,10 +52,12 @@ function BatchSizeInput() {
         2,000)
       </p>
       <input
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
+        type="number"
+        min="1"
+        max="2000"
         placeholder="Enter batch size"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value))}
       />
     </div>
   );
@@ -242,7 +137,54 @@ type ConfigureScreenStep = "configure" | "review";
 const SOURCE_CURRENCIES = ["BTC", "ETH", "ADA", "LINK", "DOT", "SOL"];
 const TARGET_CURRENCIES = ["USD", "GBP", "EUR", "JPY"];
 
-function ConfigureScreen() {
+function ConfigureScreenButtonPanel({
+  step,
+  sourceCurrenciesLength,
+  targetCurrenciesLength,
+  onNextClick,
+  onBackClick,
+}: {
+  step: ConfigureScreenStep;
+  sourceCurrenciesLength: number;
+  targetCurrenciesLength: number;
+  onNextClick: () => void;
+  onBackClick: () => void;
+}) {
+  const backButtonText = step === "configure" ? "Return Home" : "Back";
+  const nextButtonText = step === "configure" ? "Next" : "Start Run!";
+
+  return (
+    <div className="flex items-center justify-center flex-row gap-4">
+      <button
+        className="bg-brand text-black px-6 py-2 rounded-md text-lg hover:opacity-90 hover:text-white transition-opacity"
+        onClick={onBackClick}
+      >
+        {backButtonText}
+      </button>
+
+      <button
+        disabled={
+          step === "configure" &&
+          (sourceCurrenciesLength === 0 || targetCurrenciesLength === 0)
+        }
+        className="bg-brand text-black px-6 py-2 rounded-md text-lg 
+                  hover:opacity-90 hover:text-white transition-opacity
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={onNextClick}
+      >
+        {nextButtonText}
+      </button>
+    </div>
+  );
+}
+
+function ConfigureScreen({
+  onReturnHome,
+  //onStartRun,
+}: {
+  onReturnHome: () => void;
+  //onStartRun: () => void;
+}) {
   const [step, setStep] = useState<ConfigureScreenStep>("configure");
   const [batchSize, setBatchSize] = useState<number>(1);
   const [sourceCurrencies, setSourceCurrencies] = useState<string[]>([]);
@@ -264,12 +206,38 @@ function ConfigureScreen() {
     );
   }
 
+  function onBatchInputChange(input: number) {
+    if (!isNaN(input) && input >= 1 && input <= 2000) {
+      setBatchSize(input);
+    }
+  }
+
+  function handleNextClick() {
+    if (step === "configure") {
+      setStep("review");
+    } else {
+      // TODO: move state to the Results screen
+      // onStartRun();
+    }
+  }
+
+  function handleBackClick() {
+    if (step === "configure") {
+      setBatchSize(1);
+      setSourceCurrencies([]);
+      setTargetCurrencies([]);
+      onReturnHome();
+    } else {
+      setStep("configure");
+    }
+  }
+
   return (
     <div className="flex items-center justify-center flex-col gap-4 min-h-screen">
       <h2>Configure Adaptimould</h2>
       <p>Here you can configure the parameters for your Adaptimould run.</p>
 
-      <BatchSizeInput />
+      <BatchSizeInput value={batchSize} onChange={onBatchInputChange} />
       <CurrencyTable
         title="Source Currencies"
         currencies={SOURCE_CURRENCIES}
@@ -282,6 +250,13 @@ function ConfigureScreen() {
         selected={targetCurrencies}
         onChange={onTargetCurrencyChange}
       />
+      <ConfigureScreenButtonPanel
+        step={step}
+        sourceCurrenciesLength={sourceCurrencies.length}
+        targetCurrenciesLength={targetCurrencies.length}
+        onNextClick={handleNextClick}
+        onBackClick={handleBackClick}
+      />
     </div>
   );
 }
@@ -293,10 +268,14 @@ export default function App() {
     setScreen("configure");
   }
 
+  function handleReturnHome() {
+    setScreen("welcome");
+  }
+
   if (screen === "welcome") {
     return <WelcomeScreen onBegin={handleBegin} />;
   } else if (screen === "configure") {
-    return <ConfigureScreen />;
+    return <ConfigureScreen onReturnHome={handleReturnHome} />;
   } else {
     return <div>Results</div>;
   }
