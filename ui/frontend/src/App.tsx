@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 type Screen = "welcome" | "configure" | "results";
@@ -125,6 +125,11 @@ type ConfigureScreenStep = "configure" | "review";
 type Message = {
   source: string;
   target: string;
+};
+
+type ResultsScreenStep = "loading" | "display";
+type Results = {
+  // TODO: add later
 };
 
 const SOURCE_CURRENCIES = ["BTC", "ETH", "ADA", "LINK", "DOT", "SOL"];
@@ -295,6 +300,23 @@ function ConfigureScreen({
   }
 }
 
+function ResultsScreen({ messages }: { messages: Message[] }) {
+  const [step, setStep] = useState<ResultsScreenStep>("loading");
+
+  useEffect(() => {
+    // Simulate loading time for results
+    const timer = setTimeout(() => {
+      setStep("display");
+    }, 2000); // 2 second loading time
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const displayText = step === "loading" ? "Loading..." : "Results go here";
+
+  return <div>{displayText}</div>;
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -315,8 +337,13 @@ export default function App() {
   if (screen === "welcome") {
     return <WelcomeScreen onBegin={handleBegin} />;
   } else if (screen === "configure") {
-    return <ConfigureScreen onReturnHome={handleReturnHome} onStartRun={handleStartRun} />;
+    return (
+      <ConfigureScreen
+        onReturnHome={handleReturnHome}
+        onStartRun={handleStartRun}
+      />
+    );
   } else {
-    return <div>Results</div>;
+    return <ResultsScreen messages={messages} />;
   }
 }
