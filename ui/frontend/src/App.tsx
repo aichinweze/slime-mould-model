@@ -82,8 +82,8 @@ function GeneratedMessagesTable({ messages }: { messages: Message[] }) {
         <tbody>
           {messages.map((message, index) => (
             <tr key={index}>
-              <td>{message.source}</td>
-              <td>{message.target}</td>
+              <td>{message.source_currency}</td>
+              <td>{message.target_currency}</td>
             </tr>
           ))}
         </tbody>
@@ -123,8 +123,8 @@ function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
 
 type ConfigureScreenStep = "configure" | "review";
 type Message = {
-  source: string;
-  target: string;
+  source_currency: string;
+  target_currency: string;
 };
 
 type ResultsScreenStep = "loading" | "display";
@@ -147,7 +147,7 @@ function generateMessages(
       sourceCurrencies[Math.floor(Math.random() * sourceCurrencies.length)];
     const target =
       targetCurrencies[Math.floor(Math.random() * targetCurrencies.length)];
-    messages.push({ source, target });
+    messages.push({ source_currency: source, target_currency: target });
   }
   return messages;
 }
