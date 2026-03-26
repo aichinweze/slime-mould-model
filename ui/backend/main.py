@@ -5,7 +5,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from google.cloud import pubsub_v1
 from google.protobuf import timestamp_pb2
 from pydantic import BaseModel
@@ -30,6 +30,7 @@ PROJECT_ID: str = get_required_env_var("PROJECT_ID")
 MAX_MESSAGES: int = int(get_required_env_var("MAX_MESSAGES"))
 FLOW_CONTROL_URL: str = get_required_env_var("FLOW_CONTROL_URL")
 INPUT_TOPIC_ID: str = get_required_env_var("INPUT_TOPIC_ID")
+INPUT_SUBSCRIPTION_ID: str = get_required_env_var("INPUT_SUBSCRIPTION_ID")
 
 app = FastAPI()
 publisher = pubsub_v1.PublisherClient()
@@ -69,10 +70,20 @@ def health():
 
 @app.post("/api/run")
 def run(message_batch: MessageBatch):
+    purge_subscription(PROJECT_ID, INPUT_SUBSCRIPTION_ID)
+
+    result = publish_messages(message_batch.messages)
+
     number_of_messages = len(message_batch.messages)
     flow_ctrl_request_counts = math.ceil(float(number_of_messages) / MAX_MESSAGES)
 
     for _ in range(flow_ctrl_request_counts):
         response = requests.post(FLOW_CONTROL_URL)
 
-    return publish_messages(message_batch.messages)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Flow control request failed with status code {response.status_code}"
+            )
+
+    return {"published": result["published"], "flow_control_invocations": flow_ctrl_request_counts}
