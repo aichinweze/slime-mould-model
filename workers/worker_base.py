@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 
 from models.models import CryptoResult, time_format
 
@@ -61,7 +61,7 @@ class WorkerBase(ABC):
             )
 
     def set_end_timestamp(self):
-        end_timestamp = datetime.now().strftime(time_format)
+        end_timestamp = datetime.now(timezone.utc).strftime(time_format)
         self.end_timestamp = end_timestamp
 
     def add_latency_to_result(self):
