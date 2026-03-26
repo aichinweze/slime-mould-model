@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
-
+from datetime import datetime, timezone
 
 time_format = "%Y-%m-%d %H:%M:%S.%f"
 
@@ -41,7 +40,7 @@ class CryptoResult:
         return self.execution_time
 
     def set_timestamp(self):
-        self.timestamp = datetime.now().strftime(time_format)
+        self.timestamp = datetime.now(timezone.utc).strftime(time_format)
 
     def to_dict(self) -> dict:
         return {

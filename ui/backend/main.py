@@ -1,15 +1,14 @@
-import datetime
 import json
 import math
 import os
-
 import requests
+
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from google.cloud import pubsub_v1
 from google.protobuf import timestamp_pb2
 from pydantic import BaseModel
-
 
 class Message(BaseModel):
     source_currency: str
@@ -31,6 +30,7 @@ MAX_MESSAGES: int = int(get_required_env_var("MAX_MESSAGES"))
 FLOW_CONTROL_URL: str = get_required_env_var("FLOW_CONTROL_URL")
 INPUT_TOPIC_ID: str = get_required_env_var("INPUT_TOPIC_ID")
 INPUT_SUBSCRIPTION_ID: str = get_required_env_var("INPUT_SUBSCRIPTION_ID")
+DATABASE_ID: str = get_required_env_var("DATABASE_ID")
 
 app = FastAPI()
 publisher = pubsub_v1.PublisherClient()
@@ -56,12 +56,12 @@ def purge_subscription(project_id: str, subscription_id: str):
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     timestamp = timestamp_pb2.Timestamp()
     timestamp.FromDatetime(now)
 
     subscriber.seek(
-        request={"subscription": subscription_path, "time": timestamp}
+        request = { "subscription": subscription_path, "time": timestamp }
     )
 
 @app.get("/health")
@@ -86,4 +86,9 @@ def run(message_batch: MessageBatch):
                 detail=f"Flow control request failed with status code {response.status_code}"
             )
 
-    return {"published": result["published"], "flow_control_invocations": flow_ctrl_request_counts}
+    return { "published": result["published"], "flow_control_invocations": flow_ctrl_request_counts }
+
+@app.get("/api/results")
+def get_results():
+    firestore_client = firestore.Client(database=DATABASE_ID)
+

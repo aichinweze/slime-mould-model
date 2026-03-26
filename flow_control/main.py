@@ -1,18 +1,17 @@
 import asyncio
 import os
-import logging
-import google.cloud.logging
+from datetime import datetime, timezone
+
 import functions_framework
 import google
+import google.cloud.logging
+from google.cloud import firestore
 
-from utils.firestore_utils import *
-from utils.flow_control_utils import *
+from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
 from router_handler import make_route_weights, RouteHandler
 from slime_mould.slime_mould_model import SlimeMouldGraph, SlimeMouldModel
-from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
-
-from datetime import datetime
-from google.cloud import firestore
+from utils.firestore_utils import *
+from utils.flow_control_utils import *
 
 TARGET_URL_A = os.environ.get("TARGET_URL_A")
 TARGET_URL_B = os.environ.get("TARGET_URL_B")
@@ -59,7 +58,7 @@ def run_flow_control(request):
     graph = SlimeMouldGraph(edges_dict=edges_dict, source_nodes=source_nodes, sink_nodes=sink_nodes)
     model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, d_min=1e-4)
 
-    timestamp = datetime.now().strftime(time_format)
+    timestamp = datetime.now(timezone.utc).strftime(time_format)
 
     # Get metrics from metrics table in Firestore database
     if subcollection_exists_in(metrics_ref):

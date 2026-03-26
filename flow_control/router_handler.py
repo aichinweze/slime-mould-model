@@ -7,7 +7,7 @@ import google.oauth2.id_token
 import logging
 import google.cloud.logging
 
-from datetime import datetime
+from datetime import datetime, timezone
 from aiohttp import ClientSession
 from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
@@ -123,7 +123,7 @@ class RouteHandler:
 
     async def send_requests(self, session: ClientSession, data: dict, worker_weights: list[float]):
         worker_route = self.select_worker_route(worker_weights)
-        timestamp = datetime.now().strftime(time_format)
+        timestamp = datetime.now(timezone.utc).strftime(time_format)
         data["send_timestamp"] = timestamp
 
         auth_req = google.auth.transport.requests.Request()

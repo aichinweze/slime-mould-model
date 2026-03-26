@@ -5,7 +5,7 @@ import functions_framework
 import logging
 import google.cloud.logging
 
-from datetime import datetime
+from datetime import datetime, timezone
 from cloudevents.http import CloudEvent
 from google.cloud import firestore
 
@@ -36,7 +36,7 @@ def update_metrics(cloud_event: CloudEvent):
 
         metrics_ref = firestore_client.collection(u'metrics')
         edge_ref = metrics_ref.document("edge_metrics").collection(edge_id)
-        timestamp = datetime.now().strftime(time_format)
+        timestamp = datetime.now(timezone.utc).strftime(time_format)
         new_metric = Metrics(edge_id=edge_id, avg_latency=execution_time, document_count=1, timestamp=timestamp)
         new_metric_ref = edge_ref.document()
 
