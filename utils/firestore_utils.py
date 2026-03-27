@@ -75,12 +75,11 @@ def get_historical_metrics(edge_ref: CollectionReference, window_size: int) -> l
 
     return historical_metrics
 
-def get_route_weights_after_time(firestore_client: firestore.Client, start_time: str):
-    start_time_formatted = start_time.strftime(time_format)
+def get_route_weights_after_time(firestore_client: firestore.Client, start_time: str) -> list[GraphRouteWeights]:
     route_weight_ref = firestore_client.collection(u'route_weight')
 
     route_weights_in_period = route_weight_ref.where(
-        "timestamp", ">=", start_time_formatted
+        "timestamp", ">=", start_time
     ).order_by(
         field_path="iteration",
         direction=firestore.Query.ASCENDING
@@ -93,18 +92,15 @@ def get_route_weights_after_time(firestore_client: firestore.Client, start_time:
 
     return graph_route_weights
 
-def get_latency_at_timestamp(edge_ref: CollectionReference, timestamp: str):
-    timestamp_formatted = timestamp.strftime(time_format)
+def get_latency_at_timestamp(edge_ref: CollectionReference, timestamp: str) -> Metrics | None:
     latest_edge_metrics = edge_ref.where(
-        "timestamp", "<=", timestamp_formatted
+        "timestamp", "<=", timestamp
     ).order_by(
         field_path="timestamp",
         direction=firestore.Query.DESCENDING
-    ).limit(1)
+    ).limit(1).get()
 
-    result = latest_edge_metrics.get()[0]
-    metrics = Metrics.from_dict(result.to_dict())
+    if not latest_edge_metrics:
+        return None
 
-    return metrics
-
-
+    return Metrics.from_dict(latest_edge_metrics[0].to_dict())

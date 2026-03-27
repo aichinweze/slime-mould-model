@@ -5,9 +5,8 @@ from datetime import datetime, timezone
 import functions_framework
 import google
 import google.cloud.logging
-from google.cloud import firestore
 
-from models.models import SlimeMouldParams, time_format, Metrics, GraphRouteWeights
+from models.models import SlimeMouldParams
 from router_handler import make_route_weights, RouteHandler
 from slime_mould.slime_mould_model import SlimeMouldGraph, SlimeMouldModel
 from utils.firestore_utils import *
