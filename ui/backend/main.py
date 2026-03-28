@@ -2,12 +2,14 @@ import json
 import math
 import os
 import time
+from collections import defaultdict, Counter
 
 import requests
 
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from google.api_core import retry
 from google.cloud import pubsub_v1
 from google.protobuf import timestamp_pb2
 from google.cloud import firestore
@@ -33,20 +35,29 @@ def get_required_env_var(key: str) -> str:
     return value
 
 PROJECT_ID: str = get_required_env_var("PROJECT_ID")
+
+MESSAGE_PULL_SIZE: int = int(get_required_env_var("MESSAGE_PULL_SIZE"))
 MAX_MESSAGES: int = int(get_required_env_var("MAX_MESSAGES"))
+
 FLOW_CONTROL_URL: str = get_required_env_var("FLOW_CONTROL_URL")
+
 INPUT_TOPIC_ID: str = get_required_env_var("INPUT_TOPIC_ID")
 INPUT_SUBSCRIPTION_ID: str = get_required_env_var("INPUT_SUBSCRIPTION_ID")
+SUCCESS_TOPIC_SUBSCRIPTION_ID: str = get_required_env_var("SUCCESS_TOPIC_SUBSCRIPTION_ID")
+ERROR_TOPIC_SUBSCRIPTION_ID: str = get_required_env_var("ERROR_TOPIC_SUBSCRIPTION_ID")
+
 DATABASE_ID: str = get_required_env_var("DATABASE_ID")
 
 WORKER_EDGE_IDS = ["0>>1", "0>>2", "0>>3"]
 
 app = FastAPI()
 publisher = pubsub_v1.PublisherClient()
+subscriber = pubsub_v1.SubscriberClient()
 topic_path = publisher.topic_path(PROJECT_ID, INPUT_TOPIC_ID)
 
 firestore_client = firestore.Client(database=DATABASE_ID)
 metrics_ref = firestore_client.collection(u'metrics')
+
 
 def publish_messages(messages: list[Message]):
     count_published_messages = 0
@@ -64,8 +75,60 @@ def publish_messages(messages: list[Message]):
 
     return {"published": count_published_messages}
 
+
+def read_from_topic(subscription_path: str) -> tuple[list[dict], list[str]]:
+    response = subscriber.pull(
+        request={"subscription": subscription_path, "max_messages": MESSAGE_PULL_SIZE },
+        retry=retry.Retry(deadline=300),
+        timeout=10.0
+    )
+
+    messages: list[dict] = []
+    ack_ids: list[str] = []
+
+    if response.received_messages:
+        for received_message in response.received_messages:
+            data: dict = json.loads(received_message.message.data.decode("utf-8"))
+            messages.append(data)
+            ack_ids.append(received_message.ack_id)
+
+    return messages, ack_ids
+
+
+def get_messages_from_topic(start_time: str, batch_size: int) -> tuple[list[dict], list[str]]:
+    start_time_dt = datetime.strptime(start_time, time_format).replace(tzinfo=timezone.utc)
+    timestamp = timestamp_pb2.Timestamp()
+    timestamp.FromDatetime(start_time_dt)
+
+    error_subscription_path = subscriber.subscription_path(PROJECT_ID, ERROR_TOPIC_SUBSCRIPTION_ID)
+    success_subscription_path = subscriber.subscription_path(PROJECT_ID, SUCCESS_TOPIC_SUBSCRIPTION_ID)
+
+    subscriber.seek(request={"subscription": error_subscription_path, "time": timestamp})
+    subscriber.seek(request={"subscription": success_subscription_path, "time": timestamp})
+
+    messages: list[dict] = []
+    ack_ids: list[str] = []
+
+    expected_loops = math.ceil(batch_size / MESSAGE_PULL_SIZE)
+    max_pull_count = expected_loops * 2
+    pull_counter = 0
+
+    while len(ack_ids) < batch_size and pull_counter < max_pull_count:
+        success_msgs_this_read, success_ack_ids_this_read = read_from_topic(start_time, success_subscription_path)
+        error_msgs_this_read, error_ack_ids_this_read = read_from_topic(start_time, error_subscription_path)
+
+        messages.extend(success_msgs_this_read)
+        messages.extend(error_msgs_this_read)
+
+        ack_ids.extend(success_ack_ids_this_read)
+        ack_ids.extend(error_ack_ids_this_read)
+
+        pull_counter += 1
+
+    return messages, ack_ids
+
+
 def purge_subscription(project_id: str, subscription_id: str, start_time: datetime):
-    subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
     timestamp = timestamp_pb2.Timestamp()
@@ -113,7 +176,7 @@ def run(batch_size: int):
     }
 
 @app.get("/api/results")
-def get_results(start_time: str):
+def get_firestore_results(start_time: str):
     graph_weights_in_period = get_route_weights_after_time(firestore_client, start_time)
 
     edge_latency_history = []
@@ -158,4 +221,27 @@ def get_results(start_time: str):
     return {
         "route_weight_history": route_weight_history,
         "edge_latency_history": edge_latency_history
+    }
+
+@app.get("/api/message-counts")
+def get_message_counts(start_time: str, batch_size: int):
+    messages, _ = get_messages_from_topic(start_time, batch_size)
+
+    grouped_messages: dict = defaultdict(list)
+    for message in messages:
+        edge_id = message["edge_id"]
+        key = edge_id if edge_id != "" else "N_A"
+        success_response: bool = message["success_response"]
+        grouped_messages[key].append(success_response)
+
+    message_counts: list[dict] = []
+    for key, grouped_msg in grouped_messages.items():
+        message_counts.append({
+            "edge_id": key,
+            "success": grouped_msg.count(True),
+            "error": grouped_msg.count(False)
+        })
+
+    return {
+        "message_counts": message_counts,
     }
