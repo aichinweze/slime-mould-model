@@ -36,6 +36,7 @@ class WorkerBase(ABC):
                 target_currency=self.target_currency,
                 currency_pair=self.currency_pair,
                 success_response=True,
+                timestamp=self.start_timestamp,
                 amount=float(json_response['data']['amount']),
                 error=None
             )
@@ -46,6 +47,7 @@ class WorkerBase(ABC):
                 target_currency=self.target_currency,
                 currency_pair=self.currency_pair,
                 success_response=False,
+                timestamp=self.start_timestamp,
                 amount=None,
                 error=json_response['error']
             )
@@ -56,6 +58,7 @@ class WorkerBase(ABC):
                 target_currency=self.target_currency,
                 currency_pair=self.currency_pair,
                 success_response=False,
+                timestamp=self.start_timestamp,
                 amount=None,
                 error="Other error in curl request"
             )
