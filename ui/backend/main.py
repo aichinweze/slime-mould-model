@@ -106,7 +106,7 @@ def run(batch_size: int):
                 detail=f"Flow control request failed with status code {response.status_code}"
             )
 
-        time.sleep(5)
+        time.sleep(2)
 
     return {
         "flow_control_invocations": flow_ctrl_request_counts,
