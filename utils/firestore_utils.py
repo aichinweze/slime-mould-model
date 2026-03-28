@@ -81,7 +81,7 @@ def get_route_weights_after_time(firestore_client: firestore.Client, start_time:
     route_weights_in_period = route_weight_ref.where(
         "timestamp", ">=", start_time
     ).order_by(
-        field_path="iteration",
+        field_path="timestamp",
         direction=firestore.Query.ASCENDING
     ).get()
 
