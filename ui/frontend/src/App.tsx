@@ -318,6 +318,41 @@ function ConfigureScreen({
   }
 }
 
+function transformEdgeLatencies(data: Results["edge_latency_history"]) {
+  return data.map((entry) => {
+    const iteration = entry.iteration;
+    const edge_latencies = entry.latencies.reduce(
+      (acc, latency) => {
+        acc[latency.edge_id] = latency.avg_latency;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    return { iteration, ...edge_latencies };
+  });
+}
+
+function RenderEdgeLatencyHistory({
+  data,
+}: {
+  data: Results["edge_latency_history"];
+}) {
+  const transformedData = transformEdgeLatencies(data);
+
+  return (
+    <LineChart width={800} height={400} data={transformedData}>
+      <XAxis dataKey="iteration" label="Iteration" />
+      <YAxis label="Edge Latency" />
+      <Tooltip />
+      <Legend />
+      <Line dataKey="0>>1" stroke="#059b02" />
+      <Line dataKey="0>>2" stroke="#ff7300" />
+      <Line dataKey="0>>3" stroke="#0088fe" />
+    </LineChart>
+  );
+}
+
 function transformRouteWeights(data: Results["route_weight_history"]) {
   return data.map((entry) => {
     const iteration = entry.iteration;
@@ -342,8 +377,8 @@ function RenderRouteWeightHistory({
 
   return (
     <LineChart width={800} height={400} data={transformedData}>
-      <XAxis dataKey="iteration" />
-      <YAxis />
+      <XAxis dataKey="iteration" label="Iteration" />
+      <YAxis label="Route Weight" />
       <Tooltip />
       <Legend />
       <Line dataKey="0>>1" stroke="#059b02" />
@@ -452,7 +487,12 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
       return <div>Sorry, an error occurred. Please try again.</div>;
     }
 
-    return <RenderRouteWeightHistory data={results.route_weight_history} />;
+    return (
+      <div>
+        <RenderRouteWeightHistory data={results.route_weight_history} />
+        <RenderEdgeLatencyHistory data={results.edge_latency_history} />
+      </div>
+    );
   } else {
     return <div>Sorry, an error occurred. Please try again.</div>;
   }
