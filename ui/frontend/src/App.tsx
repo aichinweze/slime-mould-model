@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Bar,
+  BarChart,
+} from "recharts";
 import "./App.css";
 
 type Screen = "welcome" | "configure" | "results";
@@ -138,7 +147,7 @@ type FlowControlMetadata = {
   flow_control_invocations: number;
 };
 
-type Results = {
+type FirestoreResults = {
   route_weight_history: {
     iteration: number;
     timestamp: string;
@@ -147,6 +156,13 @@ type Results = {
   edge_latency_history: {
     iteration: number;
     latencies: { edge_id: string; avg_latency: number }[];
+  }[];
+};
+type PubSubResults = {
+  message_counts: {
+    edge_id: string;
+    success: number;
+    error: number;
   }[];
 };
 
@@ -318,7 +334,28 @@ function ConfigureScreen({
   }
 }
 
-function transformEdgeLatencies(data: Results["edge_latency_history"]) {
+function RenderMessageCounts({
+  data,
+}: {
+  data: PubSubResults["message_counts"];
+}) {
+  const filteredData = data.filter((entry) => entry.edge_id !== "N_A");
+
+  return (
+    <BarChart width={800} height={400} data={filteredData}>
+      <Bar dataKey="success" fill="#059b02" />
+      <Bar dataKey="error" fill="#E24B4A" />
+      <XAxis dataKey="edge_id" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+    </BarChart>
+  );
+}
+
+function transformEdgeLatencies(
+  data: FirestoreResults["edge_latency_history"],
+) {
   return data.map((entry) => {
     const iteration = entry.iteration;
     const edge_latencies = entry.latencies.reduce(
@@ -336,7 +373,7 @@ function transformEdgeLatencies(data: Results["edge_latency_history"]) {
 function RenderEdgeLatencyHistory({
   data,
 }: {
-  data: Results["edge_latency_history"];
+  data: FirestoreResults["edge_latency_history"];
 }) {
   const transformedData = transformEdgeLatencies(data);
 
@@ -353,7 +390,7 @@ function RenderEdgeLatencyHistory({
   );
 }
 
-function transformRouteWeights(data: Results["route_weight_history"]) {
+function transformRouteWeights(data: FirestoreResults["route_weight_history"]) {
   return data.map((entry) => {
     const iteration = entry.iteration;
     const edge_weights = entry.weights.reduce(
@@ -371,7 +408,7 @@ function transformRouteWeights(data: Results["route_weight_history"]) {
 function RenderRouteWeightHistory({
   data,
 }: {
-  data: Results["route_weight_history"];
+  data: FirestoreResults["route_weight_history"];
 }) {
   const transformedData = transformRouteWeights(data);
 
@@ -391,12 +428,15 @@ function RenderRouteWeightHistory({
 function ResultsScreen({ messages }: { messages: Message[] }) {
   const [step, setStep] = useState<ResultsScreenStep>("publishing");
   const [metadata, setMetadata] = useState<RunMetadata | null>(null);
-  const [results, setResults] = useState<Results | null>(null);
+  const [fsResults, setFirestoreResults] = useState<FirestoreResults | null>(
+    null,
+  );
+  const [psResults, setPubSubResults] = useState<PubSubResults | null>(null);
 
   const messageBatchSize = messages.length;
 
   useEffect(() => {
-    async function getResults(start_time: string) {
+    async function getFirestoreResults(start_time: string) {
       const response = await fetch(
         `/api/results?start_time=${encodeURIComponent(start_time)}`,
         {
@@ -416,9 +456,34 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
         return;
       }
 
-      const data = (await response.json()) as Results;
-      console.log("Results data received from GCP:", data);
-      setResults(data);
+      const data = (await response.json()) as FirestoreResults;
+      console.log("Firestore results data received from GCP:", data);
+      setFirestoreResults(data);
+    }
+
+    async function getPubSubResults(start_time: string) {
+      const response = await fetch(
+        `/api/message-counts?start_time=${encodeURIComponent(start_time)}&batch_size=${messageBatchSize}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        setStep("error");
+        console.error(
+          "Adaptimould encountered error while fetching message counts from Pub/Sub:",
+          response.statusText,
+        );
+        return;
+      }
+
+      const data = (await response.json()) as PubSubResults;
+      console.log("Pub/Sub results data received from GCP:", data);
+      setPubSubResults(data);
       setStep("display");
     }
 
@@ -442,7 +507,8 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
       const data = (await response.json()) as FlowControlMetadata;
       console.log("Flow control metadata received from GCP:", data);
 
-      getResults(start_time);
+      await getFirestoreResults(start_time);
+      await getPubSubResults(start_time);
     }
 
     async function runAdaptimould() {
@@ -482,15 +548,16 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
   } else if (step === "loading") {
     return <div>Loading results from Adaptimould...</div>;
   } else if (step === "display") {
-    if (!results) {
+    if (!fsResults) {
       console.error("Results data is null or undefined");
       return <div>Sorry, an error occurred. Please try again.</div>;
     }
 
     return (
       <div>
-        <RenderRouteWeightHistory data={results.route_weight_history} />
-        <RenderEdgeLatencyHistory data={results.edge_latency_history} />
+        <RenderRouteWeightHistory data={fsResults.route_weight_history} />
+        <RenderEdgeLatencyHistory data={fsResults.edge_latency_history} />
+        <RenderMessageCounts data={psResults?.message_counts || []} />
       </div>
     );
   } else {
