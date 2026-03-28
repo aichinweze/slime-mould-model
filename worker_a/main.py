@@ -12,6 +12,7 @@ PROJECT_ID = os.environ.get('PROJECT_ID')
 PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 NODE_ID = int(os.environ.get('NODE_ID', 1))
+DELAY = int(os.environ.get('DELAY', 1))
 
 publisher = pubsub_v1.PublisherClient()
 success_topic_path = publisher.topic_path(PROJECT_ID, PUBLISHER_SUCCESS_TOPIC_ID)
@@ -43,7 +44,7 @@ def process_routed_request(request):
 
             # TODO: Add ID to JSON payload to track message and whether it gets to success or error topic
 
-            worker = WorkerA(NODE_ID, source_currency, target_currency, send_timestamp)
+            worker = WorkerA(NODE_ID, source_currency, target_currency, send_timestamp, float(DELAY))
             worker_out = worker.execute()
 
             logging.debug("Worker A: worker_out: {}".format(worker_out))
