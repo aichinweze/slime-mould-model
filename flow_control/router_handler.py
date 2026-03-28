@@ -114,7 +114,8 @@ class RouteHandler:
         json_payload = json.dumps(data)
         encoded_payload = json_payload.encode("utf-8")
 
-        publish_result = self.publisher.publish(self.error_topic_id, data=encoded_payload)
+        error_topic_path = self.publisher.topic_path(self.project_id, self.error_topic_id)
+        publish_result = self.publisher.publish(error_topic_path, data=encoded_payload)
         message_id = publish_result.result()
         logging.debug(f"Message ID: {message_id} published to topic {self.error_topic_id}")
 

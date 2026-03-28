@@ -387,7 +387,7 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
       setStep("display");
     }
 
-    async function startRun() {
+    async function startRun(start_time: string) {
       const response = await fetch(`/api/run?batch_size=${messageBatchSize}`, {
         method: "POST",
         headers: {
@@ -406,15 +406,8 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
 
       const data = (await response.json()) as FlowControlMetadata;
       console.log("Flow control metadata received from GCP:", data);
-      setStep("loading");
 
-      if (!metadata || !metadata.start_time) {
-        setStep("error");
-        console.error("Start time is null or undefined");
-        return;
-      }
-
-      getResults(metadata.start_time);
+      getResults(start_time);
     }
 
     async function runAdaptimould() {
@@ -436,14 +429,14 @@ function ResultsScreen({ messages }: { messages: Message[] }) {
       }
 
       const data = (await response.json()) as RunMetadata;
-      console.log("Run metadata received from GCP:", data);
 
       setMetadata(data);
-      console.log("Stored metadata in state:", metadata);
+
+      console.log("Run metadata received from GCP:", data);
 
       setStep("loading");
 
-      startRun();
+      startRun(data.start_time);
     }
 
     runAdaptimould();
