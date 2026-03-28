@@ -33,7 +33,6 @@ def process_routed_request(request):
     logging.getLogger().setLevel(logging.DEBUG)
 
     logging.debug("Worker C processing routed request...")
-    logging.debug("Worker C: request: {}".format(request))
 
     content_type = request.headers["content-type"]
     if content_type == "application/json":
