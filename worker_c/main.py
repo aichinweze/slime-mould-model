@@ -6,7 +6,6 @@ import google.cloud.logging
 
 from google.cloud import pubsub_v1
 
-from worker_b.main import DELAY
 from workers.worker_c import WorkerC
 
 PROJECT_ID = os.environ.get('PROJECT_ID')

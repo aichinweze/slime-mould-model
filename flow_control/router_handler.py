@@ -13,7 +13,7 @@ from google.api_core import retry
 from google.cloud import pubsub_v1, firestore
 
 from utils.firestore_utils import get_latest_graph_route_weights
-from models.models import RouteWeight, GraphRouteWeights, time_format
+from models.models import RouteWeight, GraphRouteWeights, time_format, CryptoResult
 
 
 def get_worker_route_weights(conductivity_list: list[float], source_node: int = 0, sink_node: int = 4) -> list[float]:
@@ -144,7 +144,17 @@ class RouteHandler:
             if response.status != 200:
                 logging.error("RouteHandler: Failed with response status: {}".format(response.status))
                 logging.error("RouteHandler: response message: {}".format(response.text))
-                self.publish_to_error_topic(response.status, worker_route, data)
+
+                error_result = CryptoResult(
+                    edge_id="",
+                    source_currency=data["data"]["source_currency"],
+                    target_currency=data["data"]["target_currency"],
+                    currency_pair="",
+                    success_response=False,
+                    timestamp=timestamp,
+                    error=str(response.text())
+                )
+                self.publish_to_error_topic(response.status, worker_route, error_result.to_dict())
             return await response.json(content_type=None)
 
     async def execute(self):
