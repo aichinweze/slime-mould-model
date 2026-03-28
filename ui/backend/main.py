@@ -1,6 +1,8 @@
 import json
 import math
 import os
+import time
+
 import requests
 
 from datetime import datetime, timezone
@@ -77,16 +79,23 @@ def purge_subscription(project_id: str, subscription_id: str, start_time: dateti
 def health():
     return {"status": "ok"}
 
-@app.post("/api/run")
-def run(message_batch: MessageBatch):
+@app.post("/api/publish")
+def publish(message_batch: MessageBatch):
     start_time = datetime.now(timezone.utc)
 
     purge_subscription(PROJECT_ID, INPUT_SUBSCRIPTION_ID, start_time)
 
     result = publish_messages(message_batch.messages)
 
-    number_of_messages = len(message_batch.messages)
-    flow_ctrl_request_counts = math.ceil(float(number_of_messages) / MAX_MESSAGES)
+    return {
+        "published": result["published"],
+        "start_time": start_time.strftime(time_format)
+    }
+
+
+@app.post("/api/run")
+def run(batch_size: int):
+    flow_ctrl_request_counts = math.ceil(float(batch_size) / MAX_MESSAGES)
 
     for _ in range(flow_ctrl_request_counts):
         response = requests.post(FLOW_CONTROL_URL)
@@ -97,10 +106,10 @@ def run(message_batch: MessageBatch):
                 detail=f"Flow control request failed with status code {response.status_code}"
             )
 
+        time.sleep(5)
+
     return {
-        "published": result["published"],
         "flow_control_invocations": flow_ctrl_request_counts,
-        "start_time": start_time.strftime(time_format)
     }
 
 @app.get("/api/results")
@@ -147,6 +156,6 @@ def get_results(start_time: str):
             })
 
     return {
-        "route_weights": route_weight_history,
+        "route_weight_history": route_weight_history,
         "edge_latency_history": edge_latency_history
     }

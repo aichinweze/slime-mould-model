@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import "./App.css";
 
 type Screen = "welcome" | "configure" | "results";
@@ -127,9 +128,26 @@ type Message = {
   target_currency: string;
 };
 
-type ResultsScreenStep = "loading" | "display";
+type ResultsScreenStep = "publishing" | "loading" | "display" | "error";
+type RunMetadata = {
+  published: number;
+  flow_control_invocations: number;
+  start_time: string;
+};
+type FlowControlMetadata = {
+  flow_control_invocations: number;
+};
+
 type Results = {
-  // TODO: add later
+  route_weight_history: {
+    iteration: number;
+    timestamp: string;
+    weights: { edge_id: string; conductivity: number }[];
+  }[];
+  edge_latency_history: {
+    iteration: number;
+    latencies: { edge_id: string; avg_latency: number }[];
+  }[];
 };
 
 const SOURCE_CURRENCIES = ["BTC", "ETH", "ADA", "LINK", "DOT", "SOL"];
@@ -300,21 +318,151 @@ function ConfigureScreen({
   }
 }
 
+function transformRouteWeights(data: Results["route_weight_history"]) {
+  return data.map((entry) => {
+    const iteration = entry.iteration;
+    const edge_weights = entry.weights.reduce(
+      (acc, weight) => {
+        acc[weight.edge_id] = weight.conductivity;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    return { iteration, ...edge_weights };
+  });
+}
+
+function RenderRouteWeightHistory({
+  data,
+}: {
+  data: Results["route_weight_history"];
+}) {
+  const transformedData = transformRouteWeights(data);
+
+  return (
+    <LineChart width={800} height={400} data={transformedData}>
+      <XAxis dataKey="iteration" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Line dataKey="0>>1" stroke="#059b02" />
+      <Line dataKey="0>>2" stroke="#ff7300" />
+      <Line dataKey="0>>3" stroke="#0088fe" />
+    </LineChart>
+  );
+}
+
 function ResultsScreen({ messages }: { messages: Message[] }) {
-  const [step, setStep] = useState<ResultsScreenStep>("loading");
+  const [step, setStep] = useState<ResultsScreenStep>("publishing");
+  const [metadata, setMetadata] = useState<RunMetadata | null>(null);
+  const [results, setResults] = useState<Results | null>(null);
+
+  const messageBatchSize = messages.length;
 
   useEffect(() => {
-    // Simulate loading time for results
-    const timer = setTimeout(() => {
-      setStep("display");
-    }, 2000); // 2 second loading time
+    async function getResults(start_time: string) {
+      const response = await fetch(
+        `/api/results?start_time=${encodeURIComponent(start_time)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-    return () => clearTimeout(timer);
+      if (!response.ok) {
+        setStep("error");
+        console.error(
+          "Adaptimould encountered error while fetching history from GCP:",
+          response.statusText,
+        );
+        return;
+      }
+
+      const data = (await response.json()) as Results;
+      console.log("Results data received from GCP:", data);
+      setResults(data);
+      setStep("display");
+    }
+
+    async function startRun() {
+      const response = await fetch(`/api/run?batch_size=${messageBatchSize}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        setStep("error");
+        console.error(
+          "Adaptimould encountered error while communicating with Flow Control: ",
+          response.statusText,
+        );
+        return;
+      }
+
+      const data = (await response.json()) as FlowControlMetadata;
+      console.log("Flow control metadata received from GCP:", data);
+      setStep("loading");
+
+      if (!metadata || !metadata.start_time) {
+        setStep("error");
+        console.error("Start time is null or undefined");
+        return;
+      }
+
+      getResults(metadata.start_time);
+    }
+
+    async function runAdaptimould() {
+      const response = await fetch("/api/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ messages }),
+      });
+
+      if (!response.ok) {
+        setStep("error");
+        console.error(
+          "Adaptimould encountered error while publishing messages to GCP:",
+          response.statusText,
+        );
+        return;
+      }
+
+      const data = (await response.json()) as RunMetadata;
+      console.log("Run metadata received from GCP:", data);
+
+      setMetadata(data);
+      console.log("Stored metadata in state:", metadata);
+
+      setStep("loading");
+
+      startRun();
+    }
+
+    runAdaptimould();
   }, []);
 
-  const displayText = step === "loading" ? "Loading..." : "Results go here";
+  if (step === "publishing") {
+    return <div>Publishing messages to Adaptimould...</div>;
+  } else if (step === "loading") {
+    return <div>Loading results from Adaptimould...</div>;
+  } else if (step === "display") {
+    if (!results) {
+      console.error("Results data is null or undefined");
+      return <div>Sorry, an error occurred. Please try again.</div>;
+    }
 
-  return <div>{displayText}</div>;
+    return <RenderRouteWeightHistory data={results.route_weight_history} />;
+  } else {
+    return <div>Sorry, an error occurred. Please try again.</div>;
+  }
 }
 
 export default function App() {
