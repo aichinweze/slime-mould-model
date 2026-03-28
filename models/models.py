@@ -49,10 +49,10 @@ class CryptoResult:
             "target_currency": self.target_currency,
             "currency_pair": self.currency_pair,
             "success_response": self.success_response,
-            "timestamp": self.timestamp,
+            "timestamp": {"string": self.timestamp } if self.timestamp is not None else None,
             "execution_time": self.execution_time,
             "amount": self.amount,
-            "error": self.error
+            "error": {"string": self.error} if self.error is not None else None
         }
 
     @staticmethod
