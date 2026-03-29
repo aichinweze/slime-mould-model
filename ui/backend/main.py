@@ -1,18 +1,18 @@
 import json
+import logging
 import math
 import os
 import time
-from collections import defaultdict, Counter
+from collections import defaultdict
+from datetime import datetime, timezone
 
 import requests
-
-from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from google.api_core import retry
+from google.api_core import exceptions
+from google.cloud import firestore
 from google.cloud import pubsub_v1
 from google.protobuf import timestamp_pb2
-from google.cloud import firestore
 from pydantic import BaseModel
 
 from models.models import time_format
@@ -55,6 +55,10 @@ publisher = pubsub_v1.PublisherClient()
 subscriber = pubsub_v1.SubscriberClient()
 topic_path = publisher.topic_path(PROJECT_ID, INPUT_TOPIC_ID)
 
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.getLogger(__name__).setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 firestore_client = firestore.Client(database=DATABASE_ID)
 metrics_ref = firestore_client.collection(u'metrics')
 
@@ -77,20 +81,22 @@ def publish_messages(messages: list[Message]):
 
 
 def read_from_topic(subscription_path: str) -> tuple[list[dict], list[str]]:
-    response = subscriber.pull(
-        request={"subscription": subscription_path, "max_messages": MESSAGE_PULL_SIZE },
-        retry=retry.Retry(deadline=300),
-        timeout=10.0
-    )
-
     messages: list[dict] = []
     ack_ids: list[str] = []
 
-    if response.received_messages:
-        for received_message in response.received_messages:
-            data: dict = json.loads(received_message.message.data.decode("utf-8"))
-            messages.append(data)
-            ack_ids.append(received_message.ack_id)
+    try:
+        response = subscriber.pull(
+            request={"subscription": subscription_path, "max_messages": MESSAGE_PULL_SIZE },
+            timeout=10.0
+        )
+
+        if response.received_messages:
+            for received_message in response.received_messages:
+                data: dict = json.loads(received_message.message.data.decode("utf-8"))
+                messages.append(data)
+                ack_ids.append(received_message.ack_id)
+    except exceptions.DeadlineExceeded as e:
+            logger.warning(f"DeadlineExceeded exception: {e}. Likely because of timeout. Subscription: {subscription_path}")
 
     return messages, ack_ids
 
@@ -110,20 +116,25 @@ def get_messages_from_topic(start_time: str, batch_size: int) -> tuple[list[dict
     ack_ids: list[str] = []
 
     expected_loops = math.ceil(batch_size / MESSAGE_PULL_SIZE)
-    max_pull_count = expected_loops * 2
+    max_pull_count = expected_loops * 10
     pull_counter = 0
 
     while len(ack_ids) < batch_size and pull_counter < max_pull_count:
-        success_msgs_this_read, success_ack_ids_this_read = read_from_topic(start_time, success_subscription_path)
-        error_msgs_this_read, error_ack_ids_this_read = read_from_topic(start_time, error_subscription_path)
+        success_msgs_this_pull, success_ack_ids_this_pull = read_from_topic(success_subscription_path)
+        error_msgs_this_pull, error_ack_ids_this_pull = read_from_topic(error_subscription_path)
 
-        messages.extend(success_msgs_this_read)
-        messages.extend(error_msgs_this_read)
+        messages.extend(success_msgs_this_pull)
+        messages.extend(error_msgs_this_pull)
 
-        ack_ids.extend(success_ack_ids_this_read)
-        ack_ids.extend(error_ack_ids_this_read)
+        ack_ids.extend(success_ack_ids_this_pull)
+        ack_ids.extend(error_ack_ids_this_pull)
+
+        time.sleep(0.5)
 
         pull_counter += 1
+        logger.debug(f"Number of success messages this pull: {len(success_msgs_this_pull)}")
+        logger.debug(f"Number of error messages this pull: {len(error_msgs_this_pull)}")
+        logger.debug("get_messages_from_topic: pull counter = {}".format(pull_counter))
 
     return messages, ack_ids
 
@@ -144,11 +155,14 @@ def health():
 
 @app.post("/api/publish")
 def publish(message_batch: MessageBatch):
+    logger.info("publish: Received POST at /api/publish endpoint.")
     start_time = datetime.now(timezone.utc)
 
     purge_subscription(PROJECT_ID, INPUT_SUBSCRIPTION_ID, start_time)
 
     result = publish_messages(message_batch.messages)
+
+    logger.info("publish: Completed request at /api/publish endpoint.")
 
     return {
         "published": result["published"],
@@ -158,9 +172,10 @@ def publish(message_batch: MessageBatch):
 
 @app.post("/api/run")
 def run(batch_size: int):
+    logger.info("run: Received POST at /api/run endpoint.")
     flow_ctrl_request_counts = math.ceil(float(batch_size) / MAX_MESSAGES)
 
-    for _ in range(flow_ctrl_request_counts):
+    for i in range(flow_ctrl_request_counts):
         response = requests.post(FLOW_CONTROL_URL)
 
         if response.status_code != 200:
@@ -169,7 +184,10 @@ def run(batch_size: int):
                 detail=f"Flow control request failed with status code {response.status_code}"
             )
 
-        time.sleep(2)
+        logger.debug(f"run: Completed {i}/{flow_ctrl_request_counts} Flow control cycles")
+        time.sleep(0.15)
+
+    logger.info("run: Completed Flow Control cycles at /api/run endpoint.")
 
     return {
         "flow_control_invocations": flow_ctrl_request_counts,
@@ -177,6 +195,7 @@ def run(batch_size: int):
 
 @app.get("/api/results")
 def get_firestore_results(start_time: str):
+    logger.info("get_firestore_results: Received GET at /api/results endpoint.")
     graph_weights_in_period = get_route_weights_after_time(firestore_client, start_time)
 
     edge_latency_history = []
@@ -218,6 +237,8 @@ def get_firestore_results(start_time: str):
                 "latencies": iteration_latency_metrics
             })
 
+    logger.info("get_firestore_results: Completed request at /api/results endpoint.")
+
     return {
         "route_weight_history": route_weight_history,
         "edge_latency_history": edge_latency_history
@@ -225,6 +246,7 @@ def get_firestore_results(start_time: str):
 
 @app.get("/api/message-counts")
 def get_message_counts(start_time: str, batch_size: int):
+    logger.info("get_message_counts: Received GET at /api/message-counts endpoint.")
     messages, _ = get_messages_from_topic(start_time, batch_size)
 
     grouped_messages: dict = defaultdict(list)
@@ -241,6 +263,8 @@ def get_message_counts(start_time: str, batch_size: int):
             "success": grouped_msg.count(True),
             "error": grouped_msg.count(False)
         })
+
+    logger.info("get_message_counts: Completed request at /api/message-counts endpoint.")
 
     return {
         "message_counts": message_counts,
