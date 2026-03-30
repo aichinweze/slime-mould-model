@@ -11,6 +11,8 @@ steps:
       - deploy
       - Metrics_Processor
       - --region=${_REGION}
+      - --min-instances=3
+      - --max-instances=3
       - --source=metrics_processor/
       - --entry-point=update_metrics
       - --trigger-topic=worker-success-topic
