@@ -13,7 +13,7 @@ PUBLISHER_SUCCESS_TOPIC_ID = os.environ.get('PUBLISHER_SUCCESS_TOPIC_ID')
 PUBLISHER_ERROR_TOPIC_ID = os.environ.get('PUBLISHER_ERROR_TOPIC_ID')
 NODE_ID = int(os.environ.get('NODE_ID', 2))
 NUMBER_OF_LOOPS = int(os.environ.get('NUMBER_OF_LOOPS', 5))
-DELAY = int(os.environ.get('DELAY', 5))
+DELAY = float(os.environ.get('DELAY', 5))
 
 publisher = pubsub_v1.PublisherClient()
 
