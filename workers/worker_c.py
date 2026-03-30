@@ -5,7 +5,7 @@ import logging
 from workers.worker_base import WorkerBase
 
 class WorkerC(WorkerBase):
-    def __init__(self, node_id: int, source_currency: str, target_currency: str, start_timestamp: str, delay: int = 15):
+    def __init__(self, node_id: int, source_currency: str, target_currency: str, start_timestamp: str, delay: float = 15.0):
         super().__init__(
             node_id=node_id,
             source_currency=source_currency,

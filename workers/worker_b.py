@@ -45,7 +45,7 @@ class WorkerB(WorkerBase):
             target_currency: str,
             start_timestamp: str,
             number_of_loops: int = 5,
-            delay: int = 5
+            delay: float = 5
     ):
         super().__init__(
             node_id=node_id,
