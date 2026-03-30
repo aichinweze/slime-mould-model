@@ -15,6 +15,8 @@ steps:
       - --entry-point=run_flow_control
       - --trigger-http
       - --runtime=python313
+      - --min-instances=2
+      - --max-instances=2
       - --service-account=adaptimould-service-account@${_PROJECT_ID}.iam.gserviceaccount.com
       - --set-env-vars=PROJECT_ID=${_PROJECT_ID}
       - --set-env-vars=INPUT_SUBSCRIPTION_ID=router-input
@@ -23,6 +25,7 @@ steps:
       - --set-env-vars=TARGET_URL_B=https://${_REGION}-${_PROJECT_ID}.cloudfunctions.net/Worker_B
       - --set-env-vars=TARGET_URL_C=https://${_REGION}-${_PROJECT_ID}.cloudfunctions.net/Worker_C
       - --set-env-vars=DATABASE_ID=adaptimould-firestore
+      - --set-env-vars=MAX_MESSAGES=10
 
 substitutions:
   _PROJECT_ID: your-project-id
