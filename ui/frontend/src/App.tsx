@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "./App.css";
 import * as Types from "./types";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { ConfigureScreen } from "./components/ConfigureScreen";
