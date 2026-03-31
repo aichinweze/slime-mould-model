@@ -4,6 +4,9 @@ import random
 
 from google.cloud import pubsub_v1
 
+# Local development script. Requires the Pub/Sub and Firestore emulators to be running.
+# See firebase.json for emulator configuration. Not intended for production use.
+
 os.environ["PROJECT_ID"] = "testing-123"
 os.environ['PUBLISHER_SUCCESS_TOPIC_ID'] = "worker-success-topic"
 os.environ["PUBSUB_EMULATOR_HOST"]= "localhost:8085"

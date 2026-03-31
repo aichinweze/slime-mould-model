@@ -1,14 +1,14 @@
-import numpy as np
-import networkx as nx
 import matplotlib.pyplot as plt
-
+import networkx as nx
+import numpy as np
 from numpy.typing import NDArray
 
-from flow_control import build_matrix_from_edge_weights
-from slime_mould.graph import SlimeMouldGraph
+from utils.flow_control_utils import build_matrix_from_source_conductivities
 from models.models import SlimeMouldParams
+from slime_mould.graph import SlimeMouldGraph
 from slime_mould.slime_mould_model import SlimeMouldModel
 
+# Local development script.
 
 def make_adjacency_matrix(connection_dict: dict[int, list[int]]):
     adjacency_matrix = []
@@ -211,15 +211,15 @@ model_params = SlimeMouldParams(alpha=0.013, mu=0.022, epsilon=0.3, d_max=1.75, 
 
 # Natural state
 source_metrics_dict_1 = { "0>>1": 2.0 / (2.0 + 1e-2), "0>>2": 2.0 / (30 + 1e-2), "0>>3": 2.0/ (15.5 + 1e-2) }
-efficiency_matrix_1 = build_matrix_from_edge_weights(source_metrics_dict_1)
+efficiency_matrix_1 = build_matrix_from_source_conductivities(source_metrics_dict_1)
 
 # Close amounts of efficiency
 source_metrics_dict_2 = { "0>>1": 10.0 / (10.0 + 1e-2), "0>>2": 10.0 / (26 + 1e-2), "0>>3": 10.0 / (12.5 + 1e-2) }
-efficiency_matrix_2 = build_matrix_from_edge_weights(source_metrics_dict_2)
+efficiency_matrix_2 = build_matrix_from_source_conductivities(source_metrics_dict_2)
 
 # C becomes dominant
 source_metrics_dict_3 = { "0>>1": 12.0 / (17.0 + 1e-2), "0>>2": 12.0 / (25 + 1e-2), "0>>3": 12.0 / (12 + 1e-2) }
-efficiency_matrix_3 = build_matrix_from_edge_weights(source_metrics_dict_3)
+efficiency_matrix_3 = build_matrix_from_source_conductivities(source_metrics_dict_3)
 
 G = nx.Graph(graph.get_adjacency_matrix())
 pos = nx.spring_layout(G, seed=27)

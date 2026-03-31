@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 from numpy.typing import NDArray
 
+# Local development script.
+
 def make_adjacency_matrix(connection_dict: dict[int, list[int]], number_of_nodes: int):
     adjacency_matrix = []
     for idx in range(len(connection_dict)):
