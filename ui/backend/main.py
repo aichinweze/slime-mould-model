@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import os
+import queue
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -80,31 +81,19 @@ def publish_messages(messages: list[Message]):
     return {"published": count_published_messages}
 
 
-def read_from_topic(subscription_path: str) -> tuple[list[dict], list[str]]:
-    messages: list[dict] = []
-    ack_ids: list[str] = []
-
-    try:
-        response = subscriber.pull(
-            request={"subscription": subscription_path, "max_messages": MESSAGE_PULL_SIZE },
-            timeout=10.0
-        )
-
-        if response.received_messages:
-            for received_message in response.received_messages:
-                data: dict = json.loads(received_message.message.data.decode("utf-8"))
-                messages.append(data)
-                ack_ids.append(received_message.ack_id)
-    except exceptions.DeadlineExceeded as e:
-            logger.warning(f"DeadlineExceeded exception: {e}. Likely because of timeout. Subscription: {subscription_path}")
-
-    return messages, ack_ids
-
-
-def get_messages_from_topic(start_time: str, batch_size: int) -> tuple[list[dict], list[str]]:
+def get_messages_from_topic(start_time: str, batch_size: int) -> list[dict]:
     start_time_dt = datetime.strptime(start_time, time_format).replace(tzinfo=timezone.utc)
     timestamp = timestamp_pb2.Timestamp()
     timestamp.FromDatetime(start_time_dt)
+
+    message_queue = queue.Queue()
+    messages: list[dict] = []
+
+    flow_control = pubsub_v1.types.FlowControl(max_messages=MESSAGE_PULL_SIZE)
+
+    def callback(message):
+        message_queue.put(json.loads(message.data.decode("utf-8")))
+        message.ack()
 
     error_subscription_path = subscriber.subscription_path(PROJECT_ID, ERROR_TOPIC_SUBSCRIPTION_ID)
     success_subscription_path = subscriber.subscription_path(PROJECT_ID, SUCCESS_TOPIC_SUBSCRIPTION_ID)
@@ -112,31 +101,49 @@ def get_messages_from_topic(start_time: str, batch_size: int) -> tuple[list[dict
     subscriber.seek(request={"subscription": error_subscription_path, "time": timestamp})
     subscriber.seek(request={"subscription": success_subscription_path, "time": timestamp})
 
-    messages: list[dict] = []
-    ack_ids: list[str] = []
+    streaming_pull_future_success = subscriber.subscribe(
+        success_subscription_path,
+        callback=callback,
+        flow_control=flow_control
+    )
 
-    expected_loops = math.ceil(batch_size / MESSAGE_PULL_SIZE)
-    max_pull_count = expected_loops * 10
-    pull_counter = 0
+    streaming_pull_future_failure = subscriber.subscribe(
+        error_subscription_path,
+        callback=callback,
+        flow_control=flow_control
+    )
 
-    while len(ack_ids) < batch_size and pull_counter < max_pull_count:
-        success_msgs_this_pull, success_ack_ids_this_pull = read_from_topic(success_subscription_path)
-        error_msgs_this_pull, error_ack_ids_this_pull = read_from_topic(error_subscription_path)
+    attempt_count = 1
+    quarter_mark = math.ceil(batch_size / 4)
+    halfway_mark = math.ceil(batch_size / 2)
+    threequarter_mark = math.ceil((3*batch_size) / 4)
 
-        messages.extend(success_msgs_this_pull)
-        messages.extend(error_msgs_this_pull)
+    while len(messages) < batch_size:
+        try:
+            message = message_queue.get(timeout=10)
+            messages.append(message)
+            attempt_count = 1
 
-        ack_ids.extend(success_ack_ids_this_pull)
-        ack_ids.extend(error_ack_ids_this_pull)
+            if len(messages) == quarter_mark:
+                logging.debug(f"Retrieved approximately 25% of messages: {len(messages)}/{batch_size}")
+            elif len(messages) == halfway_mark:
+                logging.debug(f"Retrieved approximately 50% of messages: {len(messages)}/{batch_size}")
+            elif len(messages) == threequarter_mark:
+                logging.debug(f"Retrieved approximately 75% of messages: {len(messages)}/{batch_size}")
+        except queue.Empty:
+            logging.warning("Timeout while waiting for messages in message queue. Retry attempt: {}".format(attempt_count))
+            if attempt_count <= 3:
+                attempt_count += 1
+                continue
+            else:
+                break
 
-        time.sleep(0.5)
+    streaming_pull_future_success.cancel()
+    streaming_pull_future_failure.cancel()
 
-        pull_counter += 1
-        logger.debug(f"Number of success messages this pull: {len(success_msgs_this_pull)}")
-        logger.debug(f"Number of error messages this pull: {len(error_msgs_this_pull)}")
-        logger.debug("get_messages_from_topic: pull counter = {}".format(pull_counter))
+    logging.info(f"Received and acknowledged {len(messages)} messages.")
 
-    return messages, ack_ids
+    return messages
 
 
 def purge_subscription(project_id: str, subscription_id: str, start_time: datetime):
@@ -184,7 +191,7 @@ def run(batch_size: int):
                 detail=f"Flow control request failed with status code {response.status_code}"
             )
 
-        logger.debug(f"run: Completed {i}/{flow_ctrl_request_counts} Flow control cycles")
+        logger.debug(f"run: Completed {i + 1}/{flow_ctrl_request_counts} Flow control cycles")
         time.sleep(0.15)
 
     logger.info("run: Completed Flow Control cycles at /api/run endpoint.")
@@ -247,7 +254,7 @@ def get_firestore_results(start_time: str):
 @app.get("/api/message-counts")
 def get_message_counts(start_time: str, batch_size: int):
     logger.info("get_message_counts: Received GET at /api/message-counts endpoint.")
-    messages, _ = get_messages_from_topic(start_time, batch_size)
+    messages = get_messages_from_topic(start_time, batch_size)
 
     grouped_messages: dict = defaultdict(list)
     for message in messages:
