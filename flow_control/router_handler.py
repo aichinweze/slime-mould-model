@@ -60,6 +60,9 @@ def get_worker_weights(graph_route_weights: GraphRouteWeights, edge_delimiter: s
 
 
 class RouteHandler:
+    """
+    Class for routing requests from Flow control to the connected Worker nodes.
+    """
     def __init__(self,
                  worker_routes: list[str],
                  project_id: str,
@@ -68,6 +71,14 @@ class RouteHandler:
                  max_messages: int,
                  firestore_client: firestore.Client,
     ):
+        """
+        :param worker_routes: URLs for worker nodes.
+        :param project_id: Google Cloud project ID.
+        :param subscription_id: Google Pub/Sub subscription ID (input)
+        :param error_topic_id: Google Pub/Sub error topic ID (output)
+        :param max_messages: Maximum number of messages pulled from Pub/Sub
+        :param firestore_client: Firestore client.
+        """
         self.worker_routes = worker_routes
         self.project_id = project_id
         self.subscriber = pubsub_v1.SubscriberClient()
