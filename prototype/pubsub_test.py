@@ -3,6 +3,9 @@ import os
 from google.api_core import retry
 from google.cloud import pubsub_v1
 
+# Local development script. Requires the Pub/Sub and Firestore emulators to be running.
+# See firebase.json for emulator configuration. Not intended for production use.
+
 subscriber = pubsub_v1.SubscriberClient()
 
 os.environ["PROJECT_ID"] = "testing-123"

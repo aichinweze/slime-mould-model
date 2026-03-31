@@ -5,6 +5,9 @@ time_format = "%Y-%m-%d %H:%M:%S.%f"
 
 @dataclass
 class SlimeMouldParams:
+    """
+    Data class holding parameters used in execution of slime mould model.
+    """
     alpha: float
     mu: float
     epsilon: float

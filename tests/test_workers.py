@@ -11,7 +11,7 @@ class WorkerTestCases(unittest.TestCase):
     def setUp(self):
         self.source_currency = 'BTC'
         self.target_currency = 'USD'
-        self.timestamp = datetime.now().strftime(time_format)
+        self.timestamp = "2026-03-31 19:00:00.123"
 
     # Test worker base functions and models
     def test_worker_build_url(self):
@@ -40,6 +40,7 @@ class WorkerTestCases(unittest.TestCase):
             target_currency="USD",
             currency_pair="BTC-USD",
             success_response=True,
+            timestamp="2026-03-31 19:00:00.123",
             amount=65902.31
         )
         derived_result = worker.extract_crypto_result(response)
@@ -57,6 +58,7 @@ class WorkerTestCases(unittest.TestCase):
             target_currency="USD",
             currency_pair="BTC-USD",
             success_response=False,
+            timestamp="2026-03-31 19:00:00.123",
             amount=None,
             error="Error in request to server"
         )
@@ -75,6 +77,7 @@ class WorkerTestCases(unittest.TestCase):
                 target_currency="USD",
                 currency_pair="BTC-USD",
                 success_response=False,
+                timestamp="2026-03-31 19:00:00.123",
                 amount=None,
                 error="Other error in curl request"
             )

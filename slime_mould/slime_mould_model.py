@@ -3,6 +3,15 @@ from models.models import SlimeMouldParams
 from slime_mould.graph import SlimeMouldGraph
 
 class SlimeMouldModel:
+    """
+        Implements the Physarum polycephalum (slime mould) mathematical model
+        for adaptive routing.
+
+        The model iteratively updates pressure and conductivity across the graph,
+        converging towards an efficient flow network. An optional efficiency matrix
+        can be supplied to bias conductivity updates based on real-world latency feedback.
+    """
+
     def __init__(
             self,
             slime_mould_params: SlimeMouldParams,
@@ -11,6 +20,16 @@ class SlimeMouldModel:
             conductivity_matrix: NDArray[float]=None,
             pressure_loop: int = 25
     ):
+        """
+        Args:
+            slime_mould_params: model parameters controlling decay, growth and bounds.
+            slime_mould_graph: the graph structure to run the model over.
+            efficiency_matrix: optional matrix biasing conductivity updates. If None,
+                the adjacency matrix is used, giving uniform weighting.
+            conductivity_matrix: optional initial conductivity state. If None,
+                the adjacency matrix is used as the starting point.
+            pressure_loop: number of pressure update iterations per model run.
+        """
         self.slime_mould_params = slime_mould_params
         self.graph = slime_mould_graph
         self.efficiency_matrix = efficiency_matrix
@@ -18,6 +37,13 @@ class SlimeMouldModel:
         self.pressure_loop = pressure_loop
 
     def run_model(self):
+        """
+        Run the slime mould model for one cycle.
+
+        Returns:
+            A tuple of (pressure_vector, conductivity_matrix) representing
+            the final state after all pressure loop iterations.
+        """
         if self.conductivity_matrix is None:
             initial_conductivity = self.graph.adjacency_matrix
         else:
