@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from google.api_core import exceptions
 from google.cloud import firestore
 from google.cloud import pubsub_v1
 from google.protobuf import timestamp_pb2
